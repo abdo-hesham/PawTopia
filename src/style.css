@@ -201,8 +201,8 @@ em { color: var(--coral); font-weight: 400; }
 .hero-atmosphere img { display: block; width: 100%; height: auto; object-fit: contain; }
 .hero-atmosphere--left { top: clamp(96px, 11svh, 128px); left: clamp(34px, 5vw, 82px); width: 10%; }
 .hero-atmosphere--right { top: clamp(82px, 9svh, 108px); right: clamp(24px, 3.5vw, 68px); width: 10%; }
-.hero-atmosphere--left img { animation: hero-atmosphere-float-left 6.8s ease-in-out -1.4s infinite; }
-.hero-atmosphere--right img { animation: hero-atmosphere-float-right 7.6s ease-in-out -.3s infinite; }
+.hero-atmosphere--left img { animation: cloud-drift 26s ease-in-out -6s infinite, cloud-breathe 9s ease-in-out infinite; }
+.hero-atmosphere--right img { animation: birds-drift 21s ease-in-out -3s infinite, birds-bob 3.4s ease-in-out infinite; }
 .hero-environment { z-index: 1; bottom: var(--scene-ground-y); width: clamp(500px, 52vw, 820px); aspect-ratio: 4 / 3; }
 .hero-environment img { transform: translateY(var(--asset-baseline-offset)); }
 .hero-environment--left { --asset-baseline-offset: 9.02%; left: clamp(-92px, -3vw, -28px); transform-origin: left bottom; }
@@ -210,14 +210,31 @@ em { color: var(--coral); font-weight: 400; }
 .hero-ground { z-index: 2; bottom: var(--scene-ground-y); left: 50%; width: clamp(760px, 88vw, 1380px); aspect-ratio: 3 / 1; transform: translateX(-50%); }
 .hero-ground img { transform: translateY(30.39%); }
 
-@keyframes hero-atmosphere-float-left {
-  0%, 100% { opacity: .82; transform: translate3d(0, 0, 0); }
-  50% { opacity: .9; transform: translate3d(2px, -4px, 0); }
+/* the cloud crosses the sky and comes back, breathing very slightly as it goes */
+@keyframes cloud-drift {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 34px -12px; }
 }
 
-@keyframes hero-atmosphere-float-right {
-  0%, 100% { opacity: .8; transform: translate3d(0, -1px, 0); }
-  50% { opacity: .88; transform: translate3d(-2px, 3px, 0); }
+@keyframes cloud-breathe {
+  0%, 100% { transform: scale(1); opacity: .84; }
+  50% { transform: scale(1.045); opacity: .94; }
+}
+
+/* the birds ride a longer arc, with a quick bob riding on top of it */
+@keyframes birds-drift {
+  0%, 100% { translate: 0 0; }
+  35% { translate: -26px -14px; }
+  70% { translate: -12px 6px; }
+}
+
+@keyframes birds-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: .82; }
+  50% { transform: translateY(-4px) rotate(-1.4deg); opacity: .94; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-atmosphere img { animation: none !important; }
 }
 
 .scene-copy, .scene-heading, .family-copy, .final-copy { position: absolute; z-index: 20; }

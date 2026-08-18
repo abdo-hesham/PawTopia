@@ -60,6 +60,7 @@ export function hydrateAssets(root = document) {
     const source = ASSETS[element.dataset.asset];
     if (!source) return;
     if (element.tagName === "SOURCE") { if (!element.srcset) element.srcset = source; return; }
-    if (!element.getAttribute("src")) element.src = source;
+    if (element.getAttribute("src") || element.getAttribute("srcset")) return;
+    element.src = source;
   });
 }
