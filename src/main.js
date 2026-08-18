@@ -862,7 +862,11 @@ const TRAVEL_EASE = (progress) => (progress < .5 ? 4 * progress * progress * pro
 const WALK_EASE = (progress) => -(Math.cos(Math.PI * progress) - 1) / 2;
 
 function setupSmoothScroll() {
-  if (prefersReducedMotion || navigator.hardwareConcurrency < 4) return;
+  // Reduced motion is the only thing that turns the glide off entirely. A modest device
+  // used to lose it too, which left half the visitors on a different site; instead it keeps
+  // the smooth wheel and hands touch back to the platform, where the inertia is free.
+  if (prefersReducedMotion) return;
+  const modestDevice = (navigator.hardwareConcurrency || 4) < 4;
   // A heavier glide than the browser's own: the page keeps travelling for a moment after
   // the wheel stops, which is what makes a scroll read as camera movement rather than
   // paging. Touch is synced to the same curve so phones inherit the same weight.
@@ -874,7 +878,7 @@ function setupSmoothScroll() {
     lerp: 0,
     duration: 1.45,
     smoothWheel: true,
-    syncTouch: true,
+    syncTouch: !modestDevice,
     syncTouchLerp: .06,
     touchInertiaMultiplier: 28,
     // .72 made one notch cover 72px: a reader crossing the whole story spent about 155 of
@@ -890,6 +894,54 @@ function setupSmoothScroll() {
   });
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
+  bindSmoothKeys();
+  bindHashLinks();
+}
+
+// Lenis owns the wheel and the touch, but not the keyboard: Page Down, Home and the space
+// bar were still teleporting the page while every other input glided. They are routed
+// through the same scroller so the whole site moves one way.
+function bindSmoothKeys() {
+  const typing = (element) => element instanceof HTMLElement
+    && (element.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName));
+
+  window.addEventListener("keydown", (event) => {
+    if (!lenis || lenis.isStopped || event.defaultPrevented) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (typing(document.activeElement)) return;
+    // a control inside an open panel scrolls that panel, not the page behind it
+    if (document.activeElement?.closest?.("[data-lenis-prevent]")) return;
+
+    const viewport = window.innerHeight;
+    const limit = document.documentElement.scrollHeight - viewport;
+    const targets = {
+      PageDown: window.scrollY + viewport * .86,
+      PageUp: window.scrollY - viewport * .86,
+      Home: 0,
+      End: limit,
+      ArrowDown: window.scrollY + viewport * .18,
+      ArrowUp: window.scrollY - viewport * .18,
+      " ": window.scrollY + viewport * (event.shiftKey ? -.86 : .86),
+    };
+    const target = targets[event.key];
+    if (target === undefined) return;
+    event.preventDefault();
+    lenis.scrollTo(gsap.utils.clamp(0, limit, target), { duration: event.key === "Home" || event.key === "End" ? 1.4 : .9, easing: TRAVEL_EASE });
+  });
+}
+
+// in-page anchors — the skip link, and anything else pointing at an id — travel rather than jump
+function bindHashLinks() {
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest?.('a[href^="#"]');
+    if (!link || link.classList.contains("js-scene-link")) return;
+    const id = link.getAttribute("href").slice(1);
+    const target = id && document.getElementById(id);
+    if (!target || !lenis) return;
+    event.preventDefault();
+    lenis.scrollTo(target, { duration: 1.1, easing: TRAVEL_EASE, offset: -20 });
+    focusScene(target);
+  });
 }
 
 // A click is still a journey. The page travels there instead of teleporting, but the
