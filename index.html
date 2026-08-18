@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fbf6ec" />
+    <meta name="description" content="Pawtopia brings thoughtful pet essentials and gentle veterinary care together in one illustrated journey." />
+    <meta property="og:title" content="Pawtopia — Better care for the pets you love" />
+    <meta property="og:description" content="Follow the paw trail through shopping, veterinary expertise, and everyday pet care." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pawtopia" />
+    <meta property="og:locale" content="en_US" />
+    <!-- SITE ORIGIN: these four values and the canonical below are the only places the host
+         is written down. Replace https://pawtopia.example with the real domain at deploy;
+         every route rewrites them at runtime from location.origin, so a wrong host here
+         only affects crawlers that do not run scripts. -->
+    <meta property="og:url" content="https://pawtopia.example/" />
+    <meta property="og:image" content="https://pawtopia.example/pawtopia-share.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A pet parent walking their dog through Pawtopia" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://pawtopia.example/pawtopia-share.jpg" />
+    <link rel="canonical" href="https://pawtopia.example/" />
+    <title>PAWTOPIA — Better care for the pets you love</title>
+    <!-- Critical CSS, inline on purpose. The stylesheet is a separate request, and until it
+         lands the document would paint as unstyled HTML behind the loader — the flash this
+         removes. Everything here is duplicated in style.css; keep the two in step. -->
+    <style>
+      html, body { margin: 0; background: #fbf6ec; }
+      body { color: #123a56; font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif; }
+      html, body { scrollbar-width: none; -ms-overflow-style: none; }
+      html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+      img { display: block; max-width: 100%; }
+      /* the loader is opaque and covers the viewport, so nothing behind it can be seen
+         half-dressed while the rest of the styles arrive */
+      .loader { position: fixed; inset: 0; z-index: 190; display: grid; place-content: center; justify-items: center; gap: 13px; background: #fbf6ec; }
+      .loader p, .loader-count { position: relative; z-index: 1; margin: 0; font-size: 12px; letter-spacing: .17em; text-transform: uppercase; }
+      .loader-count { color: #f27152; }
+      /* a soft cream bed under the wordmark: the trail walks behind the type instead of through it */
+      .loader::after { content: ""; position: absolute; z-index: 0; top: 50%; left: 50%; width: min(380px, 70vw); height: 190px; transform: translate(-50%, -50%); background: radial-gradient(closest-side, #fbf6ec 56%, rgba(251,246,236,0) 100%); }
+      .loader-brand { display: grid; place-items: center; width: clamp(104px, 15vw, 132px); aspect-ratio: 1; margin-bottom: 10px; border: 2px dashed #f27152; border-radius: 50%; background: #f5ecde; }
+      .loader-brand .paw-mark { display: block; width: 58px; height: 58px; color: #f27152; animation: loader-pulse 1.9s cubic-bezier(.4,0,.2,1) infinite; }
+      .loader-brand svg { display: block; width: 100%; height: 100%; fill: currentColor; stroke: currentColor; }
+      @keyframes loader-pulse { 0%, 100% { transform: scale(1); opacity: .92; } 50% { transform: scale(1.12); opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .loader-brand .paw-mark { animation: none; } }
+      .loader-trail { position: absolute; inset: 0; pointer-events: none; }
+      .loader-path { display: block; width: 100%; height: 100%; }
+      .loader-line { fill: none; stroke: rgba(18,58,86,.22); stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 3 9; }
+      .loader-paws { position: absolute; inset: 0; }
+      .loader-paw { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; color: #123a56; opacity: .18; }
+      .loader-paw svg { display: block; width: 100%; height: 100%; fill: currentColor; stroke: currentColor; }
+      .skip-link { position: fixed; z-index: 300; top: 12px; left: 12px; padding: 10px 16px; color: #fbf6ec; background: #123a56; transform: translateY(-150%); }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#story">Skip to the Pawtopia story</a>
+    <div class="loader" role="status" aria-live="polite">
+      <div class="loader-trail" aria-hidden="true">
+        <svg class="loader-path" fill="none" focusable="false"><path class="loader-line" /></svg>
+        <div class="loader-paws"></div>
+      </div>
+      <p class="loader-brand" aria-label="Pawtopia"><span class="paw-mark paw-mark--loader" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span></p>
+      <p class="loader-status">Following the paws</p>
+      <span class="loader-count">00</span>
+    </div>
+
+    <header class="site-header" aria-label="Pawtopia navigation">
+      <a class="brand js-scene-link" href="#scene-love" data-scene-target="0" aria-label="Pawtopia home"><span class="paw-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span><span><strong>PAWTOPIA</strong><small>Happy pets. Healthy lives.</small></span></a>
+      <button class="chapter-marker js-scene-link" type="button" data-scene-target="0" aria-label="Return to the current chapter"><span>Chapter</span><b>01</b><i>Love</i></button>
+      <div class="header-actions"><button class="header-link js-go-shop" type="button">Shop</button><button class="header-link header-cart js-open-cart" type="button" aria-label="Open your bag"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h2.2l2.1 9.4a2 2 0 0 0 2 1.6h6.6a2 2 0 0 0 2-1.5L21 8H7" /><circle cx="10.5" cy="19.5" r="1.3" /><circle cx="17" cy="19.5" r="1.3" /></svg><span class="cart-count">0</span></button><button class="button button--coral button--small js-open-vet" type="button">Book a Vet</button><button class="menu-button js-open-menu" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Open story menu"><i></i><i></i></button></div>
+    </header>
+
+    <main class="story-page" id="story">
+      <div class="global-paw-journey" aria-hidden="true"><div class="global-paw-lines"></div><div class="global-paw-prints"></div></div>
+
+      <section class="story-scene story-scene--hero" id="scene-love" data-scene-index="0" aria-labelledby="love-title">
+        <div class="scene-frame scene-frame--sticky scene-frame--hero">
+          <div class="hero-atmosphere hero-atmosphere--left" aria-hidden="true"><img data-asset="heroTopLeftAtmosphere" src="./assets/cloud_vector.svg" alt="" fetchpriority="high" decoding="async" /></div>
+          <div class="hero-atmosphere hero-atmosphere--right" aria-hidden="true"><img data-asset="heroTopRightAtmosphere" src="./assets/birds_vector.svg" alt="" fetchpriority="high" decoding="async" /></div>
+          <div class="hero-environment hero-environment--left" aria-hidden="true"><img data-asset="heroLeftEnvironment" src="./assets/left-environment.webp" alt="" fetchpriority="high" decoding="async" /></div>
+          <div class="hero-environment hero-environment--right" aria-hidden="true"><img data-asset="heroRightEnvironment" src="./assets/right-environment.webp" alt="" fetchpriority="high" decoding="async" /></div>
+          <div class="scene-copy scene-copy--hero"><p class="scene-kicker">Chapter 01 · Love</p><h1 id="love-title">Better care for the pets<br />you <em>love.</em></h1><p class="scene-intro">Thoughtful essentials and gentle veterinary care, together in one warm little world.</p><button class="button button--coral js-scene-link" type="button" data-scene-target="1" data-scene-walk="#travel-01">Follow the paws <span>↓</span></button></div>
+          <div class="hero-ground" aria-hidden="true"><img data-asset="heroGroundDetails" src="./assets/ground-details.webp" alt="" fetchpriority="high" decoding="async" /></div>
+          <div class="scene-character scene-character--hero"><img data-asset="heroPersonDog" src="./assets/person-dog.webp" alt="A pet parent walking their dog through Pawtopia" fetchpriority="high" decoding="async" /></div>
+          <p class="scroll-cue"><i></i> Scroll to begin the walk</p>
+        </div>
+      </section>
+
+      <div class="journey-space journey-space--first" id="travel-01" aria-label="The path to chapter two"><p>A small walk.<br />A big decision.</p></div>
+
+      <section class="story-scene story-scene--choice" id="scene-choice" data-scene-index="1" aria-labelledby="choice-title">
+        <div class="scene-frame scene-frame--choice">
+          <div class="choice-environment choice-environment--left" aria-hidden="true"><img data-asset="heroLeftEnvironment" alt="" loading="lazy" decoding="async" /></div>
+          <div class="choice-environment choice-environment--right" aria-hidden="true"><img data-asset="heroRightEnvironment" alt="" loading="lazy" decoding="async" /></div>
+          <div class="scene-heading scene-heading--center"><p class="scene-kicker">Chapter 02 · Choice</p><h2 id="choice-title"><span class="choice-line"><span>What does</span></span><span class="choice-line"><span>your pet</span></span><span class="choice-line"><span>need <em>today?</em></span></span></h2><p>Two paths. The same promise of thoughtful care.</p></div>
+          <div class="choice-paths">
+            <button class="destination destination--shop js-go-shop" type="button"><span class="destination-art"><img data-asset="shopBag" alt="Pawtopia shopping bag" loading="lazy" decoding="async" /></span><span class="destination-copy"><strong>Shop</strong><small>Food, treats, toys and everyday essentials.</small><b>Explore shop <i>→</i></b></span></button>
+            <span class="choice-fork" aria-hidden="true"><svg viewBox="0 0 300 62" preserveAspectRatio="xMidYMax meet" focusable="false"><path d="M150 60 C 122 58, 92 44, 62 26 C 44 16, 26 10, 8 7" /><path d="M150 60 C 178 58, 208 44, 238 26 C 256 16, 274 10, 292 7" /></svg></span>
+            <button class="destination destination--care js-open-vet" type="button"><span class="destination-art"><img data-asset="vet" alt="A veterinarian gently examining a dog" loading="lazy" decoding="async" /></span><span class="destination-copy"><strong>Care</strong><small>Checkups, veterinary care and expert advice.</small><b>Explore care <i>→</i></b></span></button>
+          </div>
+        </div>
+      </section>
+
+      <div class="journey-space journey-space--long journey-space--right" id="travel-02" aria-label="The path to chapter three"><p>Curious noses<br />lead the way.</p></div>
+
+      <section class="story-scene story-scene--discovery" id="scene-discovery" data-scene-index="2" aria-labelledby="discovery-title">
+        <div class="scene-frame scene-frame--discovery">
+          <div class="scene-copy scene-copy--left"><p class="scene-kicker">Chapter 03 · Discovery</p><h2 id="discovery-title"><span class="line-mask"><span>Everything</span></span><span class="line-mask"><span>they <em>need.</em></span></span></h2><p class="scene-intro">Everyday essentials for muddy walks, quiet naps, training wins, and all the moments between.</p><button class="text-cta js-go-shop" type="button">Visit the good cupboard <span>→</span></button></div>
+          <div class="discovery-world" aria-label="Pets exploring the Pawtopia shop">
+            <span class="discovery-ground" aria-hidden="true"><img data-asset="heroGroundDetails" alt="" loading="lazy" decoding="async" /></span>
+            <span class="discovery-figure discovery-figure--dog"><img data-asset="dog" alt="A friendly illustrated dog" loading="lazy" decoding="async" /></span>
+            <span class="discovery-figure discovery-figure--shop"><img data-asset="shoppingBag" alt="A Pawtopia shopping bag" loading="lazy" decoding="async" /></span>
+            <span class="discovery-figure discovery-figure--cat"><img data-asset="cat" alt="A calm illustrated cat" loading="lazy" decoding="async" /></span>
+          </div>
+          <div class="product-notes" aria-label="Featured Pawtopia products"><button class="product-note js-add-product" type="button" data-product="trail"><span>01</span><strong>Trail Bites</strong><small>Good-dog treats</small><b>EGP 240 · Add</b></button><button class="product-note js-add-product" type="button" data-product="cloud"><span>02</span><strong>Cloud Nap</strong><small>Washable pet bed</small><b>EGP 1,180 · Add</b></button><button class="product-note js-add-product" type="button" data-product="roam"><span>03</span><strong>Roam Rope</strong><small>Everyday leash</small><b>EGP 540 · Add</b></button></div>
+        </div>
+      </section>
+
+      <div class="journey-space journey-space--short journey-space--left" id="travel-03" aria-label="The path to chapter four"><p>Good care keeps<br />coming back around.</p></div>
+
+      <section class="story-scene story-scene--loop" id="scene-loop" data-scene-index="3" aria-labelledby="loop-title">
+        <div class="loop-frame">
+          <div class="scene-copy scene-copy--loop">
+            <h2 id="loop-title"><span class="loop-headline is-active" data-loop-copy="0"><span class="line-mask"><span>Thoughtful choices</span></span><span class="line-mask"><span><em>for every day.</em></span></span></span><span class="loop-headline" data-loop-copy="1"><span class="line-mask"><span>Care that comes</span></span><span class="line-mask"><span><em>full circle.</em></span></span></span><span class="loop-headline" data-loop-copy="2"><span class="line-mask"><span>Expertise that</span></span><span class="line-mask"><span>makes a <em>difference.</em></span></span></span><span class="loop-headline" data-loop-copy="3"><span class="line-mask"><span>Return to</span></span><span class="line-mask"><span>what <em>matters.</em></span></span></span></h2>
+            <p class="scene-intro"><span class="loop-line is-active" data-loop-copy="0">What they need today helps us understand what they may need tomorrow.</span><span class="loop-line" data-loop-copy="1">Gentle support when they need it most.</span><span class="loop-line" data-loop-copy="2">Clear answers from people who listen.</span><span class="loop-line" data-loop-copy="3">A healthier, happier way home.</span></p>
+          </div>
+          <div class="loop-art" aria-live="polite"><span class="loop-ground" aria-hidden="true"><img data-asset="heroGroundDetails" alt="" loading="lazy" decoding="async" /></span><img class="loop-illustration is-active" data-loop-art="0" data-asset="shoppingBag" alt="A Pawtopia shopping bag" loading="lazy" decoding="async" /><img class="loop-illustration" data-loop-art="1" data-asset="vet" alt="Gentle veterinary care" loading="lazy" decoding="async" /><img class="loop-illustration" data-loop-art="2" data-asset="veterinarianCat" alt="A Pawtopia veterinarian caring for a cat" loading="lazy" decoding="async" /><img class="loop-illustration" data-loop-art="3" data-asset="returnHome" alt="A healthier, happier return home" loading="lazy" decoding="async" /></div>
+          <div class="loop-rail" aria-hidden="true"><i></i><span class="paw-mark loop-paw"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span></div>
+          <ol class="loop-steps"><li class="is-active" data-loop-step="0"><b>01</b><span class="loop-step-copy"><strong>Shop</strong><small>The right things for everyday life.</small></span></li><li data-loop-step="1"><b>02</b><span class="loop-step-copy"><strong>Care</strong><small>Gentle support when they need it.</small></span></li><li data-loop-step="2"><b>03</b><span class="loop-step-copy"><strong>Expertise</strong><small>Clear answers from people who listen.</small></span></li><li data-loop-step="3"><b>04</b><span class="loop-step-copy"><strong>Return</strong><small>A healthier, happier way home.</small></span></li></ol>
+        </div>
+      </section>
+
+      <div class="story-interlude" id="interlude-vet" aria-label="A quiet moment on the way to chapter five">
+        <div class="interlude-frame">
+          <blockquote class="interlude-quote"><p>Behind every happy step<br /><em>is care you can trust.</em></p></blockquote>
+          <div class="interlude-portal" aria-hidden="true"><span class="paw-mark paw-mark--portal"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span></div>
+        </div>
+      </div>
+
+      <section class="story-scene story-scene--vet" id="scene-vet" data-scene-index="4" aria-labelledby="vet-title">
+        <div class="scene-frame scene-frame--vet">
+          <div class="vet-blob" aria-hidden="true"><img data-asset="vetField" alt="" loading="lazy" decoding="async" /></div>
+          <span class="vet-branch vet-branch--left" aria-hidden="true"><img data-asset="branchLeft" alt="" loading="lazy" decoding="async" /></span>
+          <span class="vet-branch vet-branch--right" aria-hidden="true"><img data-asset="branchRight" alt="" loading="lazy" decoding="async" /></span>
+          <img class="vet-character" data-asset="vet" alt="A Pawtopia veterinarian reassuring a dog during a checkup" loading="lazy" decoding="async" />
+          <div class="scene-copy scene-copy--right"><p class="scene-kicker">Chapter 05 · Veterinary</p><h2 id="vet-title"><span class="line-mask"><span>Care,</span></span><span class="line-mask"><span>with</span></span><span class="line-mask"><span><em>expertise.</em></span></span></h2><p class="scene-intro">Calm appointments, thoughtful questions, and a clear plan made together.</p><ul class="service-list"><li><button class="js-open-vet" type="button"><span>01</span><strong>Checkups</strong><i>→</i></button></li><li><button class="js-open-vet" type="button"><span>02</span><strong>Vaccinations</strong><i>→</i></button></li><li><button class="js-open-vet" type="button"><span>03</span><strong>Nutrition</strong><i>→</i></button></li><li><button class="js-open-vet" type="button"><span>04</span><strong>Preventive care</strong><i>→</i></button></li></ul></div>
+        </div>
+      </section>
+
+      <div class="journey-space journey-space--mid journey-space--left" id="travel-05" aria-label="The path to chapter six"><p>For every brave visit,<br />there is someone waiting.</p></div>
+
+      <section class="story-scene story-scene--family" id="scene-family" data-scene-index="5" aria-labelledby="family-title">
+        <div class="scene-frame scene-frame--family">
+          <div class="family-field" aria-hidden="true"><img data-asset="blobOne" alt="" loading="lazy" decoding="async" /></div>
+          <span class="family-branch" aria-hidden="true"><img data-asset="botanicalBranch" alt="" loading="lazy" decoding="async" /></span>
+          <svg class="family-sweep" viewBox="0 0 1000 130" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 104 C 190 124, 400 112, 580 78 C 720 52, 860 30, 1000 20" /></svg>
+          <span class="family-art"><img class="family-character" data-asset="personCat" alt="A person sharing a quiet moment with their cat" loading="lazy" decoding="async" /><span class="family-heart" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 20.1 4.9 13a4.5 4.5 0 0 1 6.4-6.4l.7.7.7-.7A4.5 4.5 0 1 1 19.1 13Z" /></svg></span></span>
+          <p class="scene-kicker family-kicker">Chapter 06 <span>·</span> Family</p>
+          <div class="family-copy"><h2 id="family-title"><span class="line-mask"><span>They’re not</span></span><span class="line-mask"><span>just pets.</span></span><span class="line-mask"><span>They’re <em>family.</em></span></span></h2><p class="family-note">In our hearts, in our homes,<br />and in every little moment.</p></div>
+        </div>
+      </section>
+
+      <div class="journey-space journey-space--final" id="travel-06" aria-label="The final path"><p>One last stretch<br />of the trail.</p></div>
+
+      <section class="story-scene story-scene--final" id="scene-final" data-scene-index="6" aria-labelledby="final-title">
+        <div class="scene-frame">
+          <div class="final-environment final-environment--left" aria-hidden="true"><img data-asset="heroLeftEnvironment" alt="" loading="lazy" decoding="async" /></div>
+          <div class="final-environment final-environment--right" aria-hidden="true"><img data-asset="heroRightEnvironment" alt="" loading="lazy" decoding="async" /></div>
+          <div class="final-ground" aria-hidden="true"><img data-asset="heroGroundDetails" alt="" loading="lazy" decoding="async" /></div>
+          <div class="final-atmosphere final-atmosphere--left" aria-hidden="true"><img data-asset="heroTopLeftAtmosphere" alt="" loading="lazy" decoding="async" /></div>
+          <div class="final-atmosphere final-atmosphere--right" aria-hidden="true"><img data-asset="heroTopLeftAtmosphere" alt="" loading="lazy" decoding="async" /></div>
+          <img class="final-pet final-pet--dog" data-asset="dog" alt="Illustrated dog" loading="lazy" decoding="async" /><img class="final-pet final-pet--cat" data-asset="cat" alt="Illustrated cat" loading="lazy" decoding="async" />
+          <div class="final-copy"><p class="scene-kicker">Chapter 07 · The next step</p><h2 id="final-title"><span class="line-mask"><span>Everything</span></span><span class="line-mask"><span>they need.</span></span></h2><h3><span class="line-mask"><span>The care they <em>deserve.</em></span></span></h3><p class="final-divider" aria-hidden="true"><span class="paw-mark paw-mark--sm"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span></p><div class="button-row"><button class="button button--coral js-go-shop" type="button">Shop Pawtopia <span>→</span></button><button class="button button--outline js-open-vet" type="button">Book a Vet <span>→</span></button></div></div>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <div class="footer-farewell">
+          <span class="footer-blob footer-blob--left" aria-hidden="true"><img data-asset="footerBlobLeft" alt="" loading="lazy" decoding="async" /></span>
+          <span class="footer-blob footer-blob--right" aria-hidden="true"><img data-asset="footerBlobRight" alt="" loading="lazy" decoding="async" /></span>
+          <div class="footer-sendoff">
+            <span class="paw-mark footer-arrival" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span>
+            <p class="footer-rule" aria-hidden="true"><span class="footer-heart"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 20.1 4.9 13a4.5 4.5 0 0 1 6.4-6.4l.7.7.7-.7A4.5 4.5 0 1 1 19.1 13Z" /></svg></span></p>
+            <p class="footer-headline">Here’s to happy pets<br />and the people who <em>love</em> them.</p>
+            <p class="footer-note">Thanks for being part of the Pawtopia pack.</p>
+          </div>
+        </div>
+        <div class="footer-legal">
+          <a class="brand js-scene-link" href="#scene-love" data-scene-target="0"><span class="paw-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span><span><strong>PAWTOPIA</strong><small>Happy pets. Healthy lives.</small></span></a>
+          <div class="footer-meta"><nav aria-label="Legal"><a href="/privacy">Privacy</a><i aria-hidden="true"></i><a href="/terms">Terms</a></nav><p>© 2026 Pawtopia</p></div>
+        </div>
+      </footer>
+    </main>
+
+    <main class="shop-view" id="shop-view" hidden aria-label="Pawtopia shop">
+      <section class="shop-hero">
+        <div class="shop-hero__copy">
+          <p class="shop-hero__mark"><span class="paw-mark paw-mark--sm" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span></p>
+          <h1>Shop Pawtopia</h1>
+          <p class="shop-hero__lead">Premium essentials for a happier, healthier life.</p>
+          <button class="button button--coral js-shop-all" type="button">Shop all products <span>&#8594;</span></button>
+        </div>
+        <div class="shop-hero__art" aria-hidden="true">
+          <img data-asset="heroPersonDog" alt="" loading="lazy" decoding="async" />
+          <span class="shop-hero__branch shop-hero__branch--left"><img data-asset="branchLeft" alt="" loading="lazy" decoding="async" /></span>
+          <span class="shop-hero__branch shop-hero__branch--right"><img data-asset="branchRight" alt="" loading="lazy" decoding="async" /></span>
+        </div>
+      </section>
+
+      <nav class="shop-categories" aria-label="Product categories"></nav>
+
+      <div class="shop-body">
+        <aside class="shop-filters" aria-label="Filter products">
+          <div class="shop-filters__top"><p>Filter by</p><button class="shop-clear" type="button">Clear all</button></div>
+          <section class="filter-group"><h2>Pet type</h2><div class="filter-pets"></div></section>
+          <section class="filter-group"><h2>Category</h2><div class="filter-categories"></div></section>
+          <section class="filter-group filter-price"><h2>Price range</h2><input type="range" min="150" max="3000" step="10" value="3000" autocomplete="off" aria-label="Maximum price" /><p><span>EGP 0</span><output>EGP 3000+</output></p></section>
+        </aside>
+
+        <div class="shop-main">
+          <div class="shop-toolbar">
+            <p class="shop-count">Showing 1-12 of 290 products</p>
+            <div class="shop-sort"><span id="sort-label">Sort by</span><button class="sort-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="sort-label sort-value"><b id="sort-value"></b><i aria-hidden="true"></i></button><ul class="sort-menu" role="listbox" aria-labelledby="sort-label" hidden></ul></div>
+          </div>
+          <div class="product-grid"></div>
+          <nav class="shop-pagination" aria-label="Product pages" hidden></nav>
+        </div>
+      </div>
+
+      <section class="shop-values" aria-label="Why Pawtopia">
+        <div class="shop-value"><span class="shop-value__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg></span><span><strong>Fast delivery</strong><small>Across Egypt</small></span></div>
+        <div class="shop-value"><span class="shop-value__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span><strong>Premium quality</strong><small>Trusted by pet parents</small></span></div>
+        <div class="shop-value"><span class="shop-value__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.1 4.9 13a4.5 4.5 0 0 1 6.4-6.4l.7.7.7-.7A4.5 4.5 0 1 1 19.1 13Z"/></svg></span><span><strong>Vet approved</strong><small>Safe &amp; reliable</small></span></div>
+        <div class="shop-value"><span class="shop-value__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.7L4 16"/><path d="M4 20v-4h4"/></svg></span><span><strong>Easy returns</strong><small>14-day return policy</small></span></div>
+      </section>
+
+      <footer class="shop-footer">
+        <a class="brand js-go-story" href="/"><span class="paw-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span><span><strong>PAWTOPIA</strong><small>Happy pets. Healthy lives.</small></span></a>
+        <p class="shop-footer__note">Thoughtful goods and<br />gentle veterinary care.</p>
+        <nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
+        <p class="shop-footer__legal">&#169; 2026 Pawtopia</p>
+      </footer>
+    </main>
+
+    <main class="checkout-view" id="checkout-view" hidden aria-label="Checkout">
+      <div class="checkout-head">
+        <p class="scene-kicker">Checkout</p>
+        <h1>Nearly<br />on their way.</h1>
+        <button class="text-cta js-go-shop" type="button">&#8592; Back to the shop</button>
+      </div>
+
+      <div class="checkout-body">
+        <form class="checkout-form" novalidate>
+          <section class="checkout-step">
+            <h2><span>01</span>Who is it for</h2>
+            <label class="field-label">Your name <input name="name" type="text" autocomplete="name" placeholder="Mostafa" required /></label>
+            <label class="field-label">Email <input name="email" type="email" autocomplete="email" placeholder="human@example.com" required /></label>
+            <label class="field-label">Phone <input name="phone" type="tel" autocomplete="tel" placeholder="010 0000 0000" required /></label>
+          </section>
+
+          <section class="checkout-step">
+            <h2><span>02</span>Where it goes</h2>
+            <label class="field-label">Address <input name="address" type="text" autocomplete="street-address" placeholder="12 Nile View, Apt 4" required /></label>
+            <div class="field-row">
+              <label class="field-label">City <input name="city" type="text" autocomplete="address-level2" placeholder="Cairo" required /></label>
+              <label class="field-label">Governorate <input name="area" type="text" autocomplete="address-level1" placeholder="Giza" /></label>
+            </div>
+            <label class="field-label">Notes for the courier <input name="notes" type="text" placeholder="Leave with the doorman" /></label>
+          </section>
+
+          <section class="checkout-step">
+            <h2><span>03</span>How it arrives</h2>
+            <div class="choice-cards">
+              <label><input type="radio" name="delivery" value="standard" data-fee="0" checked /><span><strong>Standard</strong><small>2-4 days · free over EGP 900</small></span></label>
+              <label><input type="radio" name="delivery" value="express" data-fee="70" /><span><strong>Express</strong><small>Next day · EGP 70</small></span></label>
+            </div>
+          </section>
+
+          <section class="checkout-step">
+            <h2><span>04</span>How you pay</h2>
+            <div class="choice-cards">
+              <label><input type="radio" name="payment" value="cod" checked /><span><strong>Cash on delivery</strong><small>Pay the courier</small></span></label>
+              <label><input type="radio" name="payment" value="card-on-delivery" /><span><strong>Card on delivery</strong><small>Machine at the door</small></span></label>
+            </div>
+            <p class="checkout-note">Payment is taken at the door, so no card details are collected here.</p>
+          </section>
+        </form>
+
+        <aside class="checkout-summary" aria-label="Order summary">
+          <h2>Your bag</h2>
+          <div class="checkout-items" data-lenis-prevent></div>
+          <dl class="checkout-totals">
+            <div><dt>Subtotal</dt><dd data-total="subtotal">EGP 0</dd></div>
+            <div><dt>Delivery</dt><dd data-total="delivery">Free</dd></div>
+            <div class="checkout-grand"><dt>Total</dt><dd data-total="grand">EGP 0</dd></div>
+          </dl>
+          <button class="button button--coral checkout-place" type="button">Place order <span>&#8594;</span></button>
+          <p class="panel-note">Free delivery over EGP 900 &#183; 30-day tail-wag guarantee</p>
+        </aside>
+      </div>
+
+      <div class="checkout-done" hidden>
+        <span class="paw-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span>
+        <h2>On the trail.</h2>
+        <p>Order <b class="checkout-ref">PAW-0000</b> is confirmed. We will email you the moment it leaves the shop.</p>
+        <button class="button button--outline js-go-story" type="button">Back to the story <span>&#8594;</span></button>
+      </div>
+    </main>
+
+    <nav class="scene-progress" aria-label="Story chapters"><button class="is-active js-scene-link" type="button" data-scene-target="0" aria-label="Go to Love"><i></i><span>01</span></button><button class="js-scene-link" type="button" data-scene-target="1" aria-label="Go to Choice"><i></i><span>02</span></button><button class="js-scene-link" type="button" data-scene-target="2" aria-label="Go to Discovery"><i></i><span>03</span></button><button class="js-scene-link" type="button" data-scene-target="3" aria-label="Go to the Pawtopia loop"><i></i><span>04</span></button><button class="js-scene-link" type="button" data-scene-target="4" aria-label="Go to Veterinary"><i></i><span>05</span></button><button class="js-scene-link" type="button" data-scene-target="5" aria-label="Go to Family"><i></i><span>06</span></button><button class="js-scene-link" type="button" data-scene-target="6" aria-label="Go to the final chapter"><i></i><span>07</span></button></nav>
+
+    <aside class="site-menu" id="site-menu" aria-hidden="true" data-lenis-prevent><div class="panel-top"><p class="scene-kicker">The Pawtopia story</p><button class="icon-button js-close-menu" type="button" aria-label="Close menu">×</button></div><nav><button class="js-scene-link js-close-menu" type="button" data-scene-target="0"><span>01</span>Love</button><button class="js-scene-link js-close-menu" type="button" data-scene-target="1"><span>02</span>Choice</button><button class="js-scene-link js-close-menu" type="button" data-scene-target="2"><span>03</span>Discovery</button><button class="js-scene-link js-close-menu" type="button" data-scene-target="3"><span>04</span>Full circle</button><button class="js-scene-link js-close-menu" type="button" data-scene-target="4"><span>05</span>Veterinary</button><button class="js-scene-link js-close-menu" type="button" data-scene-target="5"><span>06</span>Family</button><button class="js-scene-link js-close-menu" type="button" data-scene-target="6"><span>07</span>Next step</button></nav><button class="js-go-shop js-close-menu panel-shop" type="button"><span class="paw-mark paw-mark--sm" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span><b>Shop Pawtopia</b><i aria-hidden="true">&#8594;</i></button><p class="panel-note">Follow the paws from thoughtful shopping to veterinary expertise—and home again.</p></aside>
+
+    <aside class="cart-drawer" aria-hidden="true" aria-label="Shopping bag"><div class="panel-top"><p class="scene-kicker">The good cupboard</p><button class="icon-button js-close-cart" type="button" aria-label="Close shopping bag">×</button></div><h2>Good things<br />for the trail.</h2><div class="cart-items" data-lenis-prevent><p class="cart-empty">Your bag is waiting for an adventure.</p></div><div class="cart-total"><span>Total</span><b>$0</b></div><button class="button button--navy cart-checkout js-go-checkout" type="button" disabled>Continue to checkout <span>↗</span></button><p class="panel-note">Free delivery over EGP 900 · 30-day tail-wag guarantee</p></aside>
+    <button class="page-scrim js-close-panels" type="button" aria-label="Close open panel"></button>
+
+    <dialog class="vet-dialog" data-lenis-prevent><button class="icon-button js-close-vet" type="button" aria-label="Close booking form">×</button><p class="scene-kicker">A gentle visit</p><h2>Let’s plan their checkup.</h2><p>Choose a day and tell us who is coming. We’ll save the treats.</p><form class="vet-form"><fieldset><legend>Choose a day</legend><div class="date-options"><label><input type="radio" name="date" value="Saturday 17" checked /><span>Sat <b>17</b></span></label><label><input type="radio" name="date" value="Monday 19" /><span>Mon <b>19</b></span></label><label><input type="radio" name="date" value="Tuesday 20" /><span>Tue <b>20</b></span></label><label class="date-option--pick"><input type="radio" name="date" value="" data-custom-date /><span class="date-pick-face"><i aria-hidden="true"></i><b>Pick a day</b></span></label></div><button class="calendar-toggle js-open-calendar" type="button" aria-expanded="false" aria-controls="vet-calendar">Open the calendar <span aria-hidden="true">&#8595;</span></button><div class="calendar" id="vet-calendar" hidden></div></fieldset><label class="field-label">Pet’s name <input name="petName" type="text" placeholder="Milo" required /></label><label class="field-label">Your email <input name="email" type="email" placeholder="human@example.com" required /></label><button class="button button--coral" type="submit">Request this visit <span>↗</span></button></form><div class="vet-success" hidden><span class="paw-mark paw-mark--success" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span><h3>You’re on the trail.</h3><p>We’ll email you shortly to confirm the visit.</p></div></dialog>
+    <div class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1448" height="1086" viewBox="0 0 1448 1086" fill="none">
+  <defs>
+    <radialGradient id="cloudFill1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(282 494) rotate(45) scale(145 105)">
+      <stop offset="0" stop-color="#FFF9F0"/>
+      <stop offset="1" stop-color="#FCF4E9"/>
+    </radialGradient>
+    <radialGradient id="cloudFill2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1056 342) rotate(43) scale(150 108)">
+      <stop offset="0" stop-color="#FFF9F0"/>
+      <stop offset="1" stop-color="#FCF4E9"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Left cloud -->
+  <g id="cloud-left">
+    <path d="M196 551
+             C195 540 201 528 212 520
+             C223 512 237 511 252 518
+             C259 501 272 487 288 478
+             C301 471 314 469 327 472
+             C349 477 364 495 367 520
+             C368 522 368 525 368 527
+             C377 522 386 519 397 520
+             C414 520 427 531 428 545
+             C430 560 418 573 399 576
+             C396 577 392 577 388 577
+             L218 578
+             C207 578 199 572 196 563
+             C194 559 194 555 196 551 Z" fill="url(#cloudFill1)"/>
+
+    <path d="M241 513
+             C225 511 212 518 203 529
+             C194 540 194 552 199 561
+             C204 571 212 576 224 576
+             L395 575
+             C411 575 423 568 427 557
+             C432 545 426 532 416 525
+             C406 518 390 517 378 524" 
+          stroke="#073A5E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M252 517
+             C263 492 286 474 309 471
+             C335 468 359 488 365 511
+             C367 516 367 521 367 526" 
+          stroke="#073A5E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M214 538 C217 531 223 525 231 522" 
+          stroke="#073A5E" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Right cloud -->
+  <g id="cloud-right">
+    <path d="M955 411
+             C954 399 960 386 971 375
+             C981 365 994 362 1008 367
+             C1015 351 1028 337 1043 328
+             C1056 320 1069 317 1083 320
+             C1105 324 1121 342 1127 365
+             C1129 370 1129 374 1129 379
+             C1138 373 1147 370 1158 371
+             C1174 372 1187 383 1189 396
+             C1192 411 1182 423 1167 428
+             C1163 429 1159 430 1154 430
+             L981 432
+             C969 431 960 426 956 419
+             C954 416 954 413 955 411 Z" fill="url(#cloudFill2)"/>
+
+    <path d="M1001 364
+             C986 361 974 367 964 378
+             C955 389 952 402 957 414
+             C962 426 971 430 984 431
+             L1155 429
+             C1170 429 1181 422 1186 412
+             C1191 401 1188 389 1179 381
+             C1170 372 1153 368 1137 378" 
+          stroke="#073A5E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M1008 367
+             C1017 346 1035 330 1054 323
+             C1077 315 1100 325 1114 342
+             C1125 355 1129 367 1128 379" 
+          stroke="#073A5E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M973 392 C977 383 984 377 991 375" 
+          stroke="#073A5E" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Birds -->
+  <g id="birds" stroke="#073A5E" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M1158 584
+             C1171 576 1186 578 1197 585
+             C1209 592 1217 603 1224 615
+             C1232 602 1242 592 1253 584
+             C1264 576 1279 576 1293 582" stroke-width="6"/>
+    <path d="M966 730
+             C977 724 988 726 997 734
+             C1002 739 1005 745 1008 752
+             C1015 741 1024 733 1035 728
+             C1042 725 1050 725 1057 728" stroke-width="5.5"/>
+  </g>
+</svg>

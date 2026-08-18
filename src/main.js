@@ -1,0 +1,1722 @@
+import "./style.css";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
+import { hydrateAssets } from "./assets.js";
+// The shop and the checkout are two of the three routes, and a reader who lands on the story
+// may never open either. Their code is fetched when a route needs it, and pre-warmed at idle
+// after the story has painted, so the first visit carries less script and a click still opens
+// instantly.
+let shopModule = null;
+let checkoutModule = null;
+let shopLoading = null;
+let checkoutLoading = null;
+
+function loadShopModule() {
+  if (shopModule) return Promise.resolve(shopModule);
+  shopLoading = shopLoading || import("./shop.js").then((module) => {
+    shopModule = module;
+    registerCatalogue(module.CATALOGUE);
+    return module;
+  });
+  return shopLoading;
+}
+
+function loadCheckoutModule() {
+  if (checkoutModule) return Promise.resolve(checkoutModule);
+  checkoutLoading = checkoutLoading || import("./checkout.js").then((module) => {
+    checkoutModule = module;
+    return module;
+  });
+  return checkoutLoading;
+}
+
+// the checkout reads the bag, and the bag can hold shop goods, so it needs the catalogue too
+function routeModule(name) {
+  if (name === "shop") return loadShopModule();
+  if (name === "checkout") return loadShopModule().then(loadCheckoutModule);
+  return Promise.resolve(null);
+}
+import { buildMicroInteractions, pulseCartCount, confirmAdd } from "./micro.js";
+import { buildCalendar, formatDate, shortDate } from "./calendar.js";
+import {
+  EASE,
+  SCRUB,
+  STAGE,
+  ENTER_AT,
+  TIME,
+  scaleTiming,
+  sceneTrack,
+  sceneStage,
+  holdDepth,
+  maskLines,
+  revealEyebrow,
+  revealHeadline,
+  revealWords,
+  exitWords,
+  splitWords,
+  revealBody,
+  revealCTA,
+  revealRows,
+  revealArt,
+  revealEnv,
+  exitCopy,
+  exitRows,
+  fadeOut,
+  parallax,
+  registerTimeline,
+  killSceneMotion,
+} from "./motion.js";
+
+gsap.registerPlugin(ScrollTrigger);
+if (import.meta.env?.DEV) window.__pawtopia = { gsap, ScrollTrigger, lenis: () => lenis };
+ScrollTrigger.config({ limitCallbacks: true, ignoreMobileResize: true });
+hydrateAssets();
+
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const scenes = gsap.utils.toArray(".story-scene");
+const progressButtons = gsap.utils.toArray(".scene-progress button");
+const siteHeader = document.querySelector(".site-header");
+const sceneProgress = document.querySelector(".scene-progress");
+const storyPage = document.querySelector(".story-page");
+const journeyLayer = document.querySelector(".global-paw-journey");
+const footerArrival = document.querySelector(".footer-arrival");
+
+const sceneMeta = [
+  ["01", "Love"],
+  ["02", "Choice"],
+  ["03", "Discovery"],
+  ["04", "Full circle"],
+  ["05", "Veterinary"],
+  ["06", "Family"],
+  ["07", "Next step"],
+];
+
+// The bag is shared between the story and the shop, so both price in EGP — a single total
+// cannot hold two currencies. The three story products are the same goods the shop sells.
+const products = {
+  trail: { name: "Trail Bites", detail: "Good-dog treats", price: 240, code: "01" },
+  cloud: { name: "Cloud Nap", detail: "Washable pet bed", price: 1180, code: "02" },
+  roam: { name: "Roam Rope", detail: "Everyday leash", price: 540, code: "03" },
+};
+
+let lenis;
+let activeScene = -1;
+let activeLoopStage = -1;
+let routePaws = [];
+let routeLines = [];
+let routeY = [];
+let travelZones = [];
+let activePaw = -2;
+let routeFrame = 0;
+let routeGuideVisible = false;
+let sceneMotionBuilt = false;
+let chapterBands = [];
+let chromeBand = null;
+let chromeVisible = null;
+let cinematicChrome = false;
+let motionScale = 1;
+let compact = false;
+let stacked = false;
+let heroIntro = null;
+let navigating = false;
+let navigationTarget = -1;
+let navigationTimer = 0;
+let viewportWidth = window.innerWidth;
+let viewportHeight = window.innerHeight;
+// every chapter's single timeline, kept so a real resize can rebuild them against the new
+// viewport — their positions are measured in viewport heights, so they cannot just be refreshed
+let sceneTimelines = [];
+let route = "story";
+const HERO_PAW_COUNT = 6;
+// the loop finishes its walk at 82% of the pin so RETURN can settle before the interlude
+const LOOP_WALK = .82;
+// chapter five arrives inside the last fifth of the paw zoom, so its reveal runs the same
+// shape as every other chapter at roughly two fifths of the scale
+const ZOOM_TIMING = scaleTiming(SCRUB, .42);
+const QUOTE_TIMING = scaleTiming(SCRUB, .6);
+// the travel lines own a short trigger of their own, so their beats are scaled to it
+const TRAVEL_TIMING = scaleTiming(SCRUB, .85);
+
+// One trail walks the whole page. `points` draw it through open travel space; `tail` marks the
+// few steps that leave a chapter's bottom edge and lead into the next travel space, so the walk
+// never restarts and never prints over scene content. An entry with neither ends the run.
+const routeBlueprint = [
+  { id: "#scene-love" },
+  { id: "#travel-01", points: [[51,.1],[57,.3],[62,.52],[59,.74],[52,.93]] },
+  { id: "#scene-choice", tail: [[50,.79],[49,.9]], stackedTail: [[50,.62],[49,.67]] },
+  { id: "#travel-02", points: [[46,.1],[40,.3],[36,.52],[41,.74],[48,.93]] },
+  { id: "#scene-discovery", tail: [[52,.84],[55,.94]] },
+  { id: "#travel-03", points: [[54,.12],[62,.34],[67,.57],[62,.79],[56,.95]] },
+  { id: "#scene-loop" },
+  { id: "#interlude-vet", points: [[57,.02],[54,.07],[51,.12],[50,.17]] },
+  { id: "#scene-vet", tail: [[49,.84],[47,.94]] },
+  { id: "#travel-05", points: [[45,.12],[40,.34],[42,.58],[48,.86]] },
+  { id: "#scene-family", tail: [[50,.83],[52,.94]] },
+  { id: "#travel-06", points: [[54,.1],[59,.3],[57,.54],[51,.82]] },
+  // chapter seven hands the walk over already drifting right, so the footer curve can clear
+  // the centred send-off copy on its way to the dog and cat
+  { id: "#scene-final", tail: [[50,.77],[53,.86],[58,.94]] },
+  // the last stretch: right of the headline, then back in to meet the pets on their hill.
+  // Narrow screens skip it — the send-off is one full-width column there with no lane to
+  // pass the type in, so the walk still ends inside chapter seven.
+  { id: ".site-footer", wideOnly: true, points: [[64,.05],[73,.15],[78,.25],[79,.35],[76,.46],[71,.57]] },
+];
+
+function pawMarkup() {
+  return '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg>';
+}
+
+function measureViewport() {
+  compact = window.innerWidth <= 900;
+  stacked = window.innerWidth <= 720;
+  // mobile keeps the story but halves the choreography
+  motionScale = compact ? .5 : 1;
+}
+
+// A chapter only takes over once its scene is meaningfully on screen. The paw-zoom interlude
+// belongs to 04, so chapter 05 waits until the portal is genuinely opening into it.
+function buildChapterBands() {
+  const viewport = window.innerHeight;
+  chapterBands = scenes.map((scene) => scene.offsetTop - viewport * .42);
+  const interlude = document.querySelector("#interlude-vet");
+  // with the zoom in play the vet scene overlaps the interlude, so 05 waits for the portal;
+  // without it the interlude is just a quote and 05 arrives with its own scene
+  if (interlude && !prefersReducedMotion) chapterBands[4] = interlude.offsetTop + viewport * (compact ? .4 : .46);
+  for (let index = 1; index < chapterBands.length; index += 1) chapterBands[index] = Math.max(chapterBands[index], chapterBands[index - 1] + viewport * .2);
+
+  // The chrome used to arrive and leave on ScrollTrigger callbacks, which are skipped when
+  // the page jumps past a trigger — a restored scroll position or a chapter click could
+  // leave the header invisible and unclickable. Reading it from scroll can't be skipped.
+  const firstTravel = document.querySelector("#travel-01");
+  const footer = document.querySelector(".site-footer");
+  chromeBand = {
+    start: prefersReducedMotion ? 0 : (firstTravel ? firstTravel.offsetTop - viewport * .76 : 0),
+    end: footer ? footer.offsetTop - viewport * .34 : Number.MAX_SAFE_INTEGER,
+  };
+}
+
+function resolveChrome() {
+  // Outside the story the header is ordinary site navigation, not a chapter cue: it stays
+  // put. The band below only governs the journey, where it arrives with chapter two and
+  // steps out of the send-off.
+  if (route !== "story") { setChromeVisibility(true); return; }
+  if (!chromeBand) return;
+  setChromeVisibility(window.scrollY >= chromeBand.start && window.scrollY < chromeBand.end);
+}
+
+// the open page between chapters — travel space and the interlude — is where the trail is
+// allowed to take over the screen
+function buildTravelZones() {
+  travelZones = gsap.utils.toArray(".journey-space, .story-interlude").map((zone) => {
+    const top = zone.getBoundingClientRect().top + window.scrollY;
+    return { top, bottom: top + zone.offsetHeight };
+  });
+}
+
+// Inside a chapter the trail is a whisper (.3); in the space between chapters it becomes the
+// protagonist (1). Scroll-derived and smoothed, so it swells and settles rather than switching.
+function pawPresence() {
+  if (!travelZones.length) return 1;
+  const focus = window.scrollY + window.innerHeight * .5;
+  const ramp = window.innerHeight * .62;
+  let nearest = 0;
+  for (let index = 0; index < travelZones.length; index += 1) {
+    const { top, bottom } = travelZones[index];
+    const gap = focus < top ? top - focus : focus > bottom ? focus - bottom : 0;
+    nearest = Math.max(nearest, 1 - Math.min(1, gap / ramp));
+  }
+  const eased = nearest * nearest * (3 - 2 * nearest);
+  return .25 + eased * .75;
+}
+
+function resolveChapter() {
+  resolveChrome();
+  // during a click journey the indicator waits for the destination instead of flickering
+  // through every chapter the page passes on the way
+  if (navigating) return;
+  let next = 0;
+  for (let index = 0; index < chapterBands.length; index += 1) {
+    if (window.scrollY >= chapterBands[index]) next = index;
+    else break;
+  }
+  setActiveScene(next);
+}
+
+function buildGlobalPawJourney() {
+  const pawContainer = document.querySelector(".global-paw-prints");
+  const lineContainer = document.querySelector(".global-paw-lines");
+  pawContainer.replaceChildren();
+  lineContainer.replaceChildren();
+
+  measureViewport();
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const pawTrackHalf = Math.max(8, Math.min(17, storyPage.clientWidth * .012));
+
+  // each stretch of open page becomes one run: a chapter's tail steps hand over to the
+  // travel space below it, and the run only ends where the trail truly stops
+  const runs = [];
+  let openRun = null;
+
+  routeBlueprint.forEach(({ id, points, tail, stackedTail, wideOnly }) => {
+    const section = document.querySelector(id);
+    if (!section) return;
+    if (wideOnly && compact) { openRun = null; return; }
+    const list = tail ? (stacked && stackedTail ? stackedTail : tail) : points;
+    if (!list) { openRun = null; return; }
+    if (tail) openRun = null;
+    const sectionTop = section.offsetTop;
+    const sectionHeight = section.offsetHeight;
+    if (!openRun) { openRun = []; runs.push(openRun); }
+    list.forEach(([guideX, y]) => {
+      const responsiveGuideX = compact ? 50 + (guideX - 50) * .58 : guideX;
+      openRun.push({ x: storyPage.clientWidth * responsiveGuideX / 100, y: sectionTop + sectionHeight * y });
+    });
+  });
+
+  // the paw prints are placed in pixels, so the guide must be too. A percentage height
+  // would restretch the lines whenever the page grows after build (lazy art, late fonts)
+  // and drag the last segment down past the end of the walk into the footer.
+  const guideSvg = document.createElementNS(svgNamespace, "svg");
+  guideSvg.classList.add("paw-guide");
+  guideSvg.setAttribute("viewBox", `0 0 ${storyPage.clientWidth} ${storyPage.scrollHeight}`);
+  guideSvg.setAttribute("preserveAspectRatio", "none");
+  guideSvg.setAttribute("aria-hidden", "true");
+  guideSvg.style.width = `${storyPage.clientWidth}px`;
+  guideSvg.style.height = `${storyPage.scrollHeight}px`;
+  lineContainer.append(guideSvg);
+
+  const stride = Math.max(104, Math.min(190, window.innerHeight * .16));
+  const segments = [];
+  const placed = [];
+  let stepParity = 0;
+
+  runs.forEach((routePoints) => {
+    if (routePoints.length < 2) return;
+    const runSegments = [];
+    let runLength = 0;
+
+    for (let index = 1; index < routePoints.length; index += 1) {
+      const previous = routePoints[index - 1];
+      const point = routePoints[index];
+      const dy = point.y - previous.y;
+      const line = document.createElementNS(svgNamespace, "path");
+      line.setAttribute("class", "trail-line");
+      line.setAttribute("d", `M ${previous.x} ${previous.y} C ${previous.x} ${previous.y + dy * .48}, ${point.x} ${point.y - dy * .48}, ${point.x} ${point.y}`);
+      guideSvg.append(line);
+      const length = line.getTotalLength();
+      const entry = { line, start: runLength, length, startY: previous.y, endY: point.y };
+      runSegments.push(entry);
+      segments.push(entry);
+      runLength += length;
+    }
+
+    const steps = Math.max(1, Math.round(runLength / stride));
+    const spacing = runLength / steps;
+
+    for (let step = 0; step <= steps; step += 1) {
+      const distance = Math.min(runLength, step * spacing);
+      const segment = runSegments.find((entry) => distance <= entry.start + entry.length) || runSegments[runSegments.length - 1];
+      const local = Math.max(0, Math.min(segment.length, distance - segment.start));
+      const point = segment.line.getPointAtLength(local);
+      const before = segment.line.getPointAtLength(Math.max(0, local - 5));
+      const after = segment.line.getPointAtLength(Math.min(segment.length, local + 5));
+      const heading = Math.atan2(after.y - before.y, after.x - before.x);
+      const side = stepParity % 2 === 0 ? "left" : "right";
+      const lateral = side === "left" ? -pawTrackHalf : pawTrackHalf;
+      stepParity += 1;
+
+      const paw = document.createElement("span");
+      paw.className = `paw-mark journey-paw journey-paw--${side}`;
+      paw.innerHTML = pawMarkup();
+      paw.style.left = `${point.x + Math.cos(heading + Math.PI / 2) * lateral}px`;
+      paw.style.top = `${point.y + Math.sin(heading + Math.PI / 2) * lateral}px`;
+      paw.style.setProperty("--paw-rotate", `${Math.max(130, Math.min(230, heading * 180 / Math.PI + 90))}deg`);
+      pawContainer.append(paw);
+      placed.push(point.y);
+    }
+  });
+
+  routePaws = gsap.utils.toArray(".journey-paw");
+  routeLines = segments;
+  routeY = placed;
+  activePaw = -2;
+  buildChapterBands();
+  buildTravelZones();
+  updatePawJourney();
+}
+
+function updatePawJourney() {
+  journeyLayer.style.setProperty("--paw-presence", pawPresence().toFixed(3));
+  const storyTop = storyPage.getBoundingClientRect().top + window.scrollY;
+  const focusY = window.scrollY - storyTop + window.innerHeight * .92;
+  let nextActive = -1;
+  for (let index = 0; index < routeY.length; index += 1) {
+    if (routeY[index] <= focusY) nextActive = index;
+    else break;
+  }
+  if (nextActive === activePaw) return;
+  // A jump — a fast flick, a chapter click, a restored scroll — would otherwise land every
+  // paw in between at once and read as a group appearing. Each step gets a small delay from
+  // where the walk was, so the prints always arrive one after another, in walking order,
+  // and unwind the same way when the page scrolls back up.
+  const previous = Math.max(activePaw, -1);
+  const walkingForward = nextActive > previous;
+  activePaw = nextActive;
+  routePaws.forEach((paw, index) => {
+    const past = index < nextActive;
+    const current = index === nextActive;
+    const wasLanded = index <= previous;
+    const step = walkingForward ? index - previous : previous - index;
+    const delay = (past || current) !== wasLanded ? Math.min(340, Math.max(0, step - 1) * 55) : 0;
+    paw.style.setProperty("--paw-delay", `${delay}ms`);
+    paw.classList.toggle("is-past", past);
+    paw.classList.toggle("is-current", current);
+  });
+  // the last print reaches the Pawtopia paw in the footer: the journey is over, nothing walks on
+  footerArrival?.classList.toggle("is-arrived", nextActive >= routeY.length - 1 && routeY.length > 0);
+  const lookahead = window.innerHeight * .9;
+  routeLines.forEach((segment) => {
+    const past = segment.endY <= focusY;
+    const upcoming = routeGuideVisible && !past && segment.startY <= focusY + lookahead;
+    segment.line.classList.toggle("is-past", past);
+    segment.line.classList.toggle("is-guide", upcoming);
+  });
+}
+
+// Lenis drives the scene timelines while it owns the scroll, but the page can also move
+// without it — a restored scroll position, an anchor jump, a keyboard page-down. Updating
+// here as well keeps every timeline tied to where the page actually is.
+function scheduleRouteUpdate() {
+  if (routeFrame) return;
+  routeFrame = requestAnimationFrame(() => {
+    routeFrame = 0;
+    ScrollTrigger.update();
+    updatePawJourney();
+    resolveChapter();
+  });
+}
+
+function setActiveScene(index) {
+  const next = Math.max(0, Math.min(sceneMeta.length - 1, index));
+  if (next === activeScene) return;
+  activeScene = next;
+  progressButtons.forEach((button, buttonIndex) => button.classList.toggle("is-active", buttonIndex === next));
+  const marker = document.querySelector(".chapter-marker");
+  marker.querySelector("b").textContent = sceneMeta[next][0];
+  marker.querySelector("i").textContent = sceneMeta[next][1];
+  marker.dataset.sceneTarget = String(next);
+}
+
+function setChromeVisibility(visible, immediate = false) {
+  if (chromeVisible === visible && !immediate) return;
+  chromeVisible = visible;
+  const duration = immediate ? 0 : .48;
+  gsap.to(siteHeader, { autoAlpha: visible ? 1 : 0, y: visible ? 0 : -siteHeader.offsetHeight, duration, ease: EASE.art, overwrite: "auto" });
+  gsap.to(sceneProgress, { autoAlpha: visible ? 1 : 0, x: visible ? 0 : -20, y: 0, duration, ease: EASE.art, overwrite: "auto" });
+  siteHeader.classList.toggle("is-visible", visible);
+  sceneProgress.classList.toggle("is-visible", visible);
+}
+
+// the navbar stays put all journey; it only steps back during the paw zoom
+function setCinematicChrome(active) {
+  if (cinematicChrome === active || !chromeVisible) return;
+  cinematicChrome = active;
+  gsap.to([siteHeader, sceneProgress], { autoAlpha: active ? .26 : 1, duration: .4, ease: EASE.env, overwrite: "auto" });
+}
+
+function setLoopStage(index) {
+  const next = Math.max(0, Math.min(3, index));
+  if (next === activeLoopStage) return;
+  activeLoopStage = next;
+  document.querySelectorAll("[data-loop-copy]").forEach((copy) => copy.classList.toggle("is-active", Number(copy.dataset.loopCopy) === next));
+  document.querySelectorAll("[data-loop-step]").forEach((step, stepIndex) => {
+    step.classList.toggle("is-active", stepIndex === next);
+    step.classList.toggle("is-done", stepIndex < next);
+  });
+  document.querySelectorAll("[data-loop-art]").forEach((art, artIndex) => {
+    const visible = artIndex === next;
+    art.classList.toggle("is-active", visible);
+    gsap.to(art, { autoAlpha: visible ? 1 : 0, y: visible ? 0 : 28, scale: visible ? 1 : .94, duration: .55, ease: EASE.art, overwrite: true });
+  });
+}
+
+function setLoopWalk(frame, walk) {
+  if (!frame) return;
+  // a unitless 0-1 figure: the rail scales by it and the paw multiplies it by the rail's
+  // measured height, so neither one touches a layout property
+  frame.style.setProperty("--loop-walk", walk.toFixed(4));
+  frame.classList.toggle("is-complete", walk > .995);
+}
+
+function buildHeroMotion() {
+  const hero = sceneTrack("#scene-love", { start: "top top", end: "bottom top", scrub: .7 });
+  if (!hero) return;
+  // TEXT EXIT leads: cue, action, body, headline, chapter label — then the world drifts on
+  fadeOut(hero, hero.scope(".scroll-cue"), 0, { duration: .1 });
+  exitCopy(hero, {
+    cta: hero.scope(".scene-copy--hero .button"),
+    body: hero.scope(".scene-copy--hero .scene-intro"),
+    headline: hero.scope("#love-title .line-mask > span"),
+    eyebrow: hero.scope(".scene-copy--hero .scene-kicker"),
+  }, 0);
+  hero
+    // editorial depth: background drifts slowest, the character barely moves, ground leads
+    .to(hero.scope(".hero-atmosphere"), { y: 24 * motionScale, duration: 1, ease: "none" }, 0)
+    .to(hero.scope(".hero-environment"), { y: 18 * motionScale, duration: 1, ease: "none" }, 0)
+    .to(hero.scope(".hero-environment--left"), { x: -13 * motionScale, duration: 1, ease: "none" }, 0)
+    .to(hero.scope(".hero-environment--right"), { x: 13 * motionScale, duration: 1, ease: "none" }, 0)
+    .to(hero.scope(".scene-character--hero"), { y: 7 * motionScale, duration: 1, ease: "none" }, 0)
+    .to(hero.scope(".hero-ground"), { y: -30 * motionScale, duration: 1, ease: "none" }, 0);
+
+  // The world lets go exactly the way it arrived. The opening brought the two sides in from
+  // scale 1.02 and transparent, left first, right a beat later; leaving plays that in
+  // reverse — right releases first, both easing back out to 1.02 as they fade — so the
+  // hero's last gesture rhymes with its first instead of just sliding off the top.
+  fadeOut(hero, hero.scope(".hero-atmosphere"), .42, { from: { scale: 1 }, to: { scale: 1.02 }, duration: .3, ease: EASE.env, stagger: .05 });
+  fadeOut(hero, hero.scope(".hero-environment--right"), .5, { from: { scale: 1 }, to: { scale: 1.02 }, duration: .34, ease: EASE.env });
+  fadeOut(hero, hero.scope(".hero-environment--left"), .56, { from: { scale: 1 }, to: { scale: 1.02 }, duration: .34, ease: EASE.env });
+  fadeOut(hero, hero.scope(".hero-ground"), .62, { from: { scale: 1 }, to: { scale: 1.01 }, duration: .3, ease: EASE.env });
+  // the person and dog stay longest, so the walk itself is the last thing chapter one releases
+  fadeOut(hero, hero.scope(".scene-character--hero"), .7, { to: { autoAlpha: .22 }, duration: .22, ease: EASE.env });
+}
+
+function buildChoiceMotion() {
+  const stage = sceneStage("#scene-choice", { scrub: .8 });
+  if (!stage) return;
+  sceneTimelines.push(stage);
+  const t = STAGE;
+
+  // ENTER — environment, illustrations, chapter label, headline, body, destinations
+  revealEnv(stage, stage.scope(".choice-environment--left"), ENTER_AT.env, { t, x: -26 });
+  revealEnv(stage, stage.scope(".choice-environment--right"), ENTER_AT.env + .04, { t, x: 26 });
+  revealArt(stage, stage.scope(".destination--shop .destination-art"), ENTER_AT.art, { t, y: 25 });
+  revealArt(stage, stage.scope(".destination--care .destination-art"), ENTER_AT.art + .1, { t, y: 25 });
+  revealEyebrow(stage, stage.scope(".scene-kicker"), ENTER_AT.eyebrow, { t });
+  revealHeadline(stage, stage.scope("#choice-title .choice-line > span"), ENTER_AT.headline, { t });
+  revealBody(stage, stage.scope(".scene-heading--center > p:last-child"), ENTER_AT.body, { t });
+  revealRows(stage, stage.scope(".destination-copy > *"), ENTER_AT.rows, { t, y: 14 });
+  stage.fromTo(stage.scope(".choice-fork"), { autoAlpha: 0 }, { autoAlpha: 1, duration: t.env, ease: EASE.env }, ENTER_AT.cta);
+
+  // HOLD — trees drift, the destinations hold almost still, the fork on the ground leads
+  holdDepth(stage, {
+    background: stage.scope(".choice-environment"),
+    character: stage.scope(".destination-art"),
+    foreground: stage.scope(".choice-fork"),
+  }, motionScale);
+
+  // EXIT — body, headline, label, then the crossroads collapses into the single path
+  exitCopy(stage, {
+    body: stage.scope(".scene-heading--center > p:last-child"),
+    headline: stage.scope("#choice-title .choice-line > span"),
+    eyebrow: stage.scope(".scene-heading--center .scene-kicker"),
+  }, stage.exitAt(.06), { t });
+  fadeOut(stage, stage.scope(".destination--shop"), stage.exitAt(.4), { from: { x: 0 }, to: { x: -30 * motionScale }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".destination--care"), stage.exitAt(.4), { from: { x: 0 }, to: { x: 30 * motionScale }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".choice-fork"), stage.exitAt(.46), { from: { scaleX: 1 }, to: { scaleX: .08 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".choice-environment"), stage.exitAt(.56), { to: { autoAlpha: .12 }, duration: t.env, ease: EASE.env });
+}
+
+function buildDiscoveryMotion() {
+  const stage = sceneStage("#scene-discovery", { scrub: .75 });
+  if (!stage) return;
+  sceneTimelines.push(stage);
+  const t = STAGE;
+
+  // ENTER — the pets land first here, then the type speaks over them
+  stage.fromTo(stage.scope(".discovery-ground"), { autoAlpha: 0 }, { autoAlpha: 1, duration: t.env, ease: EASE.env }, ENTER_AT.env);
+  revealArt(stage, stage.scope(".discovery-figure"), ENTER_AT.art, { t, y: 25, stagger: t.stagger });
+  revealEyebrow(stage, stage.scope(".scene-kicker"), ENTER_AT.eyebrow, { t });
+  revealHeadline(stage, stage.scope("#discovery-title .line-mask > span"), ENTER_AT.headline, { t });
+  revealBody(stage, stage.scope(".scene-intro"), ENTER_AT.body, { t });
+  revealCTA(stage, stage.scope(".text-cta"), ENTER_AT.cta, { t });
+  revealRows(stage, stage.scope(".product-note"), ENTER_AT.rows, { t, y: 20 });
+
+  // HOLD — the pets hold, the ground they stand on leads
+  // On a phone the pets and their grass are one stacked block, so splitting them across two
+  // parallax speeds slid the ground out from under their feet. The group drifts as one there.
+  holdDepth(stage, compact
+    ? { character: stage.scope(".discovery-world") }
+    : { character: stage.scope(".discovery-figure"), foreground: stage.scope(".discovery-ground") },
+    motionScale);
+
+  // EXIT — the shelf empties row by row, the copy follows, the pets stay a beat longer
+  exitRows(stage, stage.scope(".product-note"), stage.exitAt(0), { t, x: 0 });
+  fadeOut(stage, stage.scope(".product-notes"), stage.exitAt(.14), { from: { y: 0 }, to: { y: -20 }, duration: t.body });
+  exitCopy(stage, {
+    cta: stage.scope(".text-cta"),
+    body: stage.scope(".scene-intro"),
+    headline: stage.scope("#discovery-title .line-mask > span"),
+    eyebrow: stage.scope(".scene-copy--left .scene-kicker"),
+  }, stage.exitAt(.1), { t });
+  fadeOut(stage, stage.scope(".discovery-world"), stage.exitAt(.46), { from: { yPercent: 0 }, to: { autoAlpha: .1, yPercent: -3 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".discovery-ground"), stage.exitAt(.56), { to: { autoAlpha: .1 }, duration: t.env, ease: EASE.env });
+}
+
+function buildLoopMotion() {
+  const section = document.querySelector("#scene-loop");
+  if (!section) return;
+  const frame = section.querySelector(".loop-frame");
+  const rail = section.querySelector(".loop-rail");
+  // the paw travels the rail in pixels, so the rail's measured height feeds its transform
+  const measureRail = () => frame.style.setProperty("--loop-rail-height", `${rail.offsetHeight}px`);
+  measureRail();
+  ScrollTrigger.addEventListener("refreshInit", measureRail);
+
+  const enter = sceneTrack("#scene-loop", { start: "top 82%", end: "top 14%", scrub: .72 });
+  revealHeadline(enter, enter.scope("#loop-title .loop-headline.is-active .line-mask > span"), .06);
+  revealArt(enter, enter.scope(".loop-art"), .14, { y: 24 });
+  revealBody(enter, enter.scope(".scene-intro"), .28);
+  revealRows(enter, enter.scope(".loop-steps li"), .32, { y: 18 });
+  enter.fromTo(enter.scope(".loop-rail"), { autoAlpha: 0 }, { autoAlpha: 1, duration: SCRUB.env, ease: EASE.env }, .42);
+
+  // the loop quiets itself down for the interlude instead of just scrolling away
+  const handover = registerTimeline(gsap.timeline({ paused: true, defaults: { ease: EASE.textOut } }));
+  fadeOut(handover, section.querySelector(".scene-copy--loop"), 0, { from: { y: 0 }, to: { y: -26 }, duration: .5 });
+  fadeOut(handover, section.querySelector(".loop-steps"), .08, { from: { y: 0 }, to: { y: -20 }, duration: .5 });
+  fadeOut(handover, rail, .12, { duration: .4 });
+  fadeOut(handover, section.querySelector(".loop-art"), .3, { from: { y: 0 }, to: { y: -16 }, duration: .5 });
+
+  // SHOP → CARE → EXPERTISE → RETURN activate in order while the paw walks the rail;
+  // the walk completes at LOOP_WALK so RETURN can be read before the handover starts
+  ScrollTrigger.create({
+    trigger: section,
+    start: "top top",
+    end: "bottom bottom",
+    onUpdate: (self) => {
+      const walk = Math.min(1, self.progress / LOOP_WALK);
+      setLoopStage(Math.floor(walk * 3.999));
+      setLoopWalk(frame, walk);
+      handover.progress(gsap.utils.clamp(0, 1, (self.progress - LOOP_WALK) / (1 - LOOP_WALK)));
+    },
+  });
+}
+
+function buildInterludeMotion() {
+  const interlude = document.querySelector("#interlude-vet");
+  if (!interlude) return;
+  const frame = interlude.querySelector(".interlude-frame");
+  const quote = interlude.querySelector(".interlude-quote");
+  const portal = interlude.querySelector(".interlude-portal");
+  const journey = document.querySelector(".global-paw-journey");
+  const portalScale = stacked ? 92 : 108;
+
+  const zoom = registerTimeline(gsap.timeline({
+    defaults: { ease: "none" },
+    scrollTrigger: {
+      trigger: interlude,
+      start: "top 35%",
+      end: "bottom bottom",
+      scrub: .7,
+      onUpdate: (self) => {
+        portal.classList.toggle("is-zooming", self.progress > .52);
+        setCinematicChrome(self.progress > .42 && self.progress < .97);
+      },
+    },
+  }));
+
+  // the quote stands alone in cream with the paw beneath it, so it rises the way every
+  // headline on the page does: line by line, the trusted words last
+  const quoteLines = quote.querySelectorAll(".line-mask > span");
+  revealHeadline(zoom, quoteLines, .14, { t: QUOTE_TIMING, stagger: .05, from: 60 });
+  zoom
+    .fromTo(portal, { autoAlpha: 0, scale: .72 }, { autoAlpha: 1, scale: 1, duration: .13, ease: EASE.art }, .2)
+    // 33%–44% deliberate pause, then the quote leaves and the paw is alone
+    .to(quoteLines, { autoAlpha: 0, y: -15, duration: .12, ease: EASE.textOut, stagger: .02 }, .44)
+    .to(journey, { autoAlpha: 0, duration: .07 }, .48)
+    // the paw is a portal, not a prop leaving the frame: 1 → 2 → 4 → 8 → fills the screen
+    .to(portal, { scale: 2, duration: .08 }, .56)
+    .to(portal, { scale: 4, duration: .08 }, .64)
+    .to(portal, { scale: 8, duration: .08 }, .72)
+    .to(portal, { scale: portalScale, duration: .14, ease: EASE.env }, .8)
+    .to(portal, { color: "#f8dcc8", duration: .08 }, .78)
+    .to(portal, { color: "#fbf6ec", duration: .08 }, .86);
+
+  zoom
+    .to(frame, { autoAlpha: 0, duration: .09 }, .93)
+    .to(journey, { autoAlpha: 1, duration: .06 }, .95);
+
+  // Chapter five's own timeline takes over from three quarters of the way through the zoom,
+  // so the sage world is already there when the giant paw dissolves. It is handed the scroll
+  // position rather than the section, because the section starts a screen higher than the
+  // moment the audience should first see it.
+  const viewport = window.innerHeight;
+  const zoomStart = interlude.offsetTop - viewport * .35;
+  const zoomEnd = interlude.offsetTop + interlude.offsetHeight - viewport;
+  return zoomStart + (zoomEnd - zoomStart) * .76;
+}
+
+function buildVetMotion(handoverPx) {
+  const stage = sceneStage("#scene-vet", { start: handoverPx, tail: .16, scrub: .8 });
+  if (!stage) return;
+  sceneTimelines.push(stage);
+  // Chapter five arrives under the dissolving paw rather than from below, so its entrance
+  // runs at roughly two thirds speed and lands inside the first half-screen of scroll: by
+  // the time the section is established, the whole chapter — services included — is there.
+  const t = scaleTiming(STAGE, .62);
+  const at = { env: 0, art: .05, eyebrow: .12, headline: .17, body: .27, rows: .32 };
+
+  // ENTER — sage field, sprigs, the vet and dog, chapter label, headline, copy, services
+  revealEnv(stage, stage.scope(".vet-blob"), at.env, { t });
+  revealArt(stage, stage.scope(".vet-branch--left"), at.env + .03, { t, y: 18 });
+  revealArt(stage, stage.scope(".vet-branch--right"), at.env + .05, { t, y: 18 });
+  revealArt(stage, stage.scope(".vet-character"), at.art, { t, y: 25 });
+  revealEyebrow(stage, stage.scope(".scene-kicker"), at.eyebrow, { t });
+  revealHeadline(stage, stage.scope("#vet-title .line-mask > span"), at.headline, { t });
+  revealBody(stage, stage.scope(".scene-intro"), at.body, { t });
+  revealRows(stage, stage.scope(".service-list li"), at.rows, { t, y: 12, stagger: t.rows });
+
+  // HOLD — chapter five holds still on purpose: the field drifts, the vet never floats
+  holdDepth(stage, {
+    background: stage.scope(".vet-blob"),
+    character: stage.scope(".vet-character"),
+    foreground: stage.scope(".vet-branch"),
+  }, motionScale);
+
+  // EXIT — softer than the zoom that brought us here: the rows leave from the bottom up,
+  // the copy follows, and the vet lingers longest before the sage lightens
+  exitRows(stage, stage.scope(".service-list li"), stage.exitAt(0), { t, x: 20 * motionScale });
+  exitCopy(stage, {
+    body: stage.scope(".scene-copy--right .scene-intro"),
+    headline: stage.scope("#vet-title .line-mask > span"),
+    eyebrow: stage.scope(".scene-copy--right .scene-kicker"),
+  }, stage.exitAt(.16), { t });
+  fadeOut(stage, stage.scope(".vet-character"), stage.exitAt(.5), { from: { yPercent: 0 }, to: { autoAlpha: .1, yPercent: -2 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".vet-branch"), stage.exitAt(.54), { to: { autoAlpha: .08 }, duration: t.art, ease: EASE.env, stagger: t.rows });
+  fadeOut(stage, stage.scope(".vet-blob"), stage.exitAt(.58), { to: { autoAlpha: .1 }, duration: t.env, ease: EASE.env });
+}
+
+function buildFamilyMotion() {
+  const stage = sceneStage("#scene-family", { lead: .88, scrub: .85 });
+  if (!stage) return;
+  sceneTimelines.push(stage);
+  const t = STAGE;
+
+  // ENTER — the emotional pause: the world settles, then two phrases with a beat between
+  revealEnv(stage, stage.scope(".family-field"), ENTER_AT.env, { t, scale: .97 });
+  revealArt(stage, stage.scope(".family-branch"), ENTER_AT.env + .06, { t, y: 16 });
+  revealArt(stage, stage.scope(".family-art"), ENTER_AT.art, { t, y: 25 });
+  revealEyebrow(stage, stage.scope(".family-kicker"), ENTER_AT.eyebrow, { t });
+  revealHeadline(stage, stage.scope("#family-title .line-mask:nth-child(-n+2) > span"), ENTER_AT.headline, { t });
+  // "They're family." waits — the pause is short, but it has to be felt
+  revealHeadline(stage, stage.scope("#family-title .line-mask:nth-child(3) > span"), ENTER_AT.headline + .26, { t });
+  stage.fromTo(stage.scope(".family-sweep"), { autoAlpha: 0 }, { autoAlpha: 1, duration: t.env, ease: EASE.env }, ENTER_AT.body + .06);
+  revealBody(stage, stage.scope(".family-note"), ENTER_AT.cta, { t });
+
+  // HOLD — the quietest depth on the page: the field breathes, the two of them barely move
+  holdDepth(stage, {
+    background: stage.scope(".family-field"),
+    character: stage.scope(".family-art"),
+    foreground: stage.scope(".family-sweep"),
+  }, motionScale);
+
+  // EXIT — chapter six dissolves rather than leaves: copy first, illustration after
+  exitCopy(stage, {
+    body: stage.scope(".family-note"),
+    headline: stage.scope("#family-title .line-mask > span"),
+    eyebrow: stage.scope(".family-kicker"),
+  }, stage.exitAt(0), { t });
+  fadeOut(stage, stage.scope(".family-sweep, .family-branch"), stage.exitAt(.3), { duration: t.body, ease: EASE.env, stagger: t.rows });
+  fadeOut(stage, stage.scope(".family-art"), stage.exitAt(.42), { from: { yPercent: 0 }, to: { autoAlpha: .1, yPercent: -3 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".family-field"), stage.exitAt(.54), { to: { autoAlpha: .1 }, duration: t.env, ease: EASE.env });
+}
+
+function buildFinalMotion() {
+  const stage = sceneStage("#scene-final", { lead: .94, tail: .2, scrub: .75 });
+  if (!stage) return;
+  sceneTimelines.push(stage);
+  const t = STAGE;
+
+  // ENTER — the world opens back up, familiar from chapter one, and the walk arrives
+  revealEnv(stage, stage.scope(".final-environment--left"), ENTER_AT.env, { t, x: -34 });
+  revealEnv(stage, stage.scope(".final-environment--right"), ENTER_AT.env, { t, x: 34 });
+  revealEnv(stage, stage.scope(".final-ground"), ENTER_AT.env + .06, { t });
+  revealArt(stage, stage.scope(".final-atmosphere"), ENTER_AT.art, { t, y: 18, stagger: t.stagger });
+  revealArt(stage, stage.scope(".final-pet--dog"), ENTER_AT.art + .06, { t, x: -26, y: 14 });
+  revealArt(stage, stage.scope(".final-pet--cat"), ENTER_AT.art + .12, { t, x: 26, y: 14 });
+  revealEyebrow(stage, stage.scope(".scene-kicker"), ENTER_AT.eyebrow, { t });
+  revealHeadline(stage, stage.scope("#final-title .line-mask > span"), ENTER_AT.headline, { t });
+  revealHeadline(stage, stage.scope(".final-copy h3 .line-mask > span"), ENTER_AT.headline + .2, { t });
+  stage.fromTo(stage.scope(".final-divider"), { autoAlpha: 0 }, { autoAlpha: 1, duration: t.env, ease: EASE.env }, ENTER_AT.body + .06);
+  revealCTA(stage, stage.scope(".button-row .button"), ENTER_AT.cta, { t });
+
+  // HOLD — chapter one's depth again: sky slowest, pets nearly still, ground leading
+  holdDepth(stage, {
+    background: stage.scope(".final-environment, .final-atmosphere"),
+    character: stage.scope(".final-pet"),
+    foreground: stage.scope(".final-ground"),
+  }, motionScale);
+
+  // EXIT — the send-off: actions, copy, the pets, then the world dims into the footer.
+  // The side environment holds longest and only dims, so the last screen still has a place.
+  fadeOut(stage, stage.scope(".button-row .button"), stage.exitAt(0), { from: { y: 0 }, to: { y: -20 }, duration: t.cta, stagger: t.rows });
+  fadeOut(stage, stage.scope(".final-divider"), stage.exitAt(.08), { duration: t.body, ease: EASE.env });
+  fadeOut(stage, stage.scope(".final-copy h3, #final-title, #scene-final .scene-kicker"), stage.exitAt(.14), { from: { y: 0 }, to: { y: -20 }, duration: t.headline, stagger: t.stagger });
+  fadeOut(stage, stage.scope(".final-pet"), stage.exitAt(.4), { to: { autoAlpha: .18 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".final-environment, .final-atmosphere, .final-ground"), stage.exitAt(.52), { to: { autoAlpha: .22 }, duration: t.env, ease: EASE.env, stagger: t.rows });
+}
+
+// The lines that live out in the open beside the trail are part of the walk, so they read
+// the same way a chapter does: they rise into the whitespace line by line, hold while the
+// paws pass, then lift away before the next steps continue.
+function buildTravelMotion() {
+  gsap.utils.toArray(".journey-space").forEach((zone) => {
+    const line = zone.querySelector("p");
+    if (!line) return;
+    maskLines(line);
+    const words = [];
+    line.querySelectorAll(".line-mask > span").forEach((row) => words.push(...splitWords(row)));
+
+    // The line is triggered on itself, not on the travel space around it. Measured from the
+    // zone, the cascade finished while the text still sat 520px down an 800px viewport —
+    // it played low and half below the fold, so by the time it was worth looking at it was
+    // already over, and the line read as static. From the paragraph, the words climb as it
+    // crosses the middle of the screen.
+    //
+    // One timeline, like every chapter: enter, drift, exit. Splitting them would let the
+    // exit revert to its own visible start values when scrolled back up and overwrite the
+    // entrance, leaving the words showing before they are meant to arrive.
+    const track = sceneTrack(line, { start: "top 92%", end: "top -25%", scrub: .8 });
+    track.to({}, { duration: 1 }, 0);
+
+    // the words climb out from under the mask as the line comes up the screen
+    revealWords(track, words, 0, { t: TRAVEL_TIMING, stagger: .045 });
+    // the camera keeps moving: the whole line drifts up through the space it sits in
+    parallax(track, line, -34 * motionScale, { at: 0, duration: 1 });
+    // and it leaves the way it came, up and out, before the next paws continue
+    exitWords(track, words, .62, { t: TRAVEL_TIMING, stagger: .028 });
+  });
+}
+
+// the journey is over, so the footer arrives quietly: the Pawtopia paw the trail was walking
+// toward, then the send-off, then the links, then the legal line
+function buildFooterMotion() {
+  const footer = sceneTrack(".site-footer", { start: "top 86%", end: "top 6%", scrub: .78 });
+  if (!footer) return;
+  revealEnv(footer, footer.scope(".footer-blob"), 0, { scale: 1.03, stagger: SCRUB.stagger });
+  // the reveal moves the mark inside the span, so the span keeps its own arrival scale
+  revealArt(footer, footer.scope(".footer-arrival svg"), .16, { y: 14 });
+  footer.fromTo(footer.scope(".footer-rule"), { autoAlpha: 0 }, { autoAlpha: 1, duration: SCRUB.env, ease: EASE.env }, .26);
+  revealHeadline(footer, footer.scope(".footer-headline .line-mask > span"), .34);
+  revealBody(footer, footer.scope(".footer-note"), .52);
+  revealRows(footer, footer.scope(".footer-legal .brand, .footer-meta"), .62, { y: 12 });
+}
+
+function buildSceneMotion() {
+  if (sceneMotionBuilt) return;
+  sceneMotionBuilt = true;
+
+  buildHeroMotion();
+  buildChoiceMotion();
+  buildDiscoveryMotion();
+  buildLoopMotion();
+  // the interlude hands chapter five the scroll position where its own timeline takes over
+  buildVetMotion(buildInterludeMotion());
+  buildFamilyMotion();
+  buildFinalMotion();
+  buildTravelMotion();
+  buildFooterMotion();
+
+  gsap.to(".scroll-cue i", { scaleY: .25, duration: 1.1, repeat: -1, yoyo: true, ease: "sine.inOut" });
+
+  // the compositor hint follows the reader instead of being held for the whole page
+  scenes.forEach((scene) => {
+    ScrollTrigger.create({
+      trigger: scene,
+      start: "top bottom+=50%",
+      end: "bottom top-=50%",
+      onToggle: (self) => scene.classList.toggle("is-live", self.isActive),
+    });
+  });
+}
+
+// reduced motion keeps the content and the chapter progression, drops the pins and the zoom
+function buildReducedMotion() {
+  const loopFrame = document.querySelector(".loop-frame");
+  ScrollTrigger.create({
+    trigger: "#scene-loop",
+    start: "top top",
+    end: "bottom bottom",
+    onUpdate: (self) => {
+      const walk = Math.min(1, self.progress / LOOP_WALK);
+      setLoopStage(Math.floor(walk * 3.999));
+      setLoopWalk(loopFrame, walk);
+    },
+  });
+
+  gsap.utils.toArray(".scene-copy, .scene-heading, .family-copy, .final-copy, .scene-character, .vet-character, .family-art, .final-pet, .discovery-world, .choice-paths, .product-notes, .interlude-quote").forEach((element) => {
+    gsap.fromTo(element, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: .38, ease: EASE.art, scrollTrigger: { trigger: element, start: "top 92%", once: true } });
+  });
+}
+
+// a long exponential settle: fast off the mark, then a slow glide into rest
+const SCROLL_EASE = (progress) => (progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress));
+// Chapter clicks use a symmetric curve instead. The wheel ease covers half its distance in
+// the first tenth of the time, which reads as a jump followed by a drift — fine when the
+// reader caused the movement, wrong when the page is walking them somewhere and the point
+// is to watch the paws cross the space on the way.
+const TRAVEL_EASE = (progress) => (progress < .5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2);
+// The walk through the travel space is paced differently again: an even middle with soft
+// ends, so the prints land at a steady rhythm instead of racing through the fast part of a
+// curve. A walking pace is the whole point of that stretch.
+const WALK_EASE = (progress) => -(Math.cos(Math.PI * progress) - 1) / 2;
+
+function setupSmoothScroll() {
+  if (prefersReducedMotion || navigator.hardwareConcurrency < 4) return;
+  // A heavier glide than the browser's own: the page keeps travelling for a moment after
+  // the wheel stops, which is what makes a scroll read as camera movement rather than
+  // paging. Touch is synced to the same curve so phones inherit the same weight.
+  // Two separate levers, and they do different jobs. The multipliers set how far one
+  // gesture travels — under 1 the page moves less per wheel notch, which is the "slower"
+  // half. The lerp sets how long it keeps coasting afterwards, which is the "smoother"
+  // half. Dropping only the lerp would make it float without ever feeling calmer.
+  lenis = new Lenis({
+    lerp: 0,
+    duration: 1.45,
+    smoothWheel: true,
+    syncTouch: true,
+    syncTouchLerp: .06,
+    touchInertiaMultiplier: 28,
+    // .72 made one notch cover 72px: a reader crossing the whole story spent about 155 of
+    // them. The weight readers feel is the coasting, not the distance per notch, so the
+    // notch grew and the duration and easing below were left alone.
+    wheelMultiplier: .9,
+    touchMultiplier: .85,
+    easing: SCROLL_EASE,
+  });
+  lenis.on("scroll", () => {
+    ScrollTrigger.update();
+    scheduleRouteUpdate();
+  });
+  gsap.ticker.add((time) => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+}
+
+// A click is still a journey. The page travels there instead of teleporting, but the
+// chapters it passes through play at reduced intensity so nobody sits through a film.
+function beginNavigation(index, { quiet = true } = {}) {
+  navigating = true;
+  navigationTarget = index;
+  document.body.classList.toggle("is-navigating", quiet);
+  clearTimeout(navigationTimer);
+}
+
+function endNavigation() {
+  clearTimeout(navigationTimer);
+  if (!navigating) return;
+  navigating = false;
+  document.body.classList.remove("is-navigating");
+  // the destination is established: the trail, the scene states and the chapter all settle
+  ScrollTrigger.update();
+  updatePawJourney();
+  if (navigationTarget >= 0) setActiveScene(navigationTarget);
+  navigationTarget = -1;
+  resolveChapter();
+}
+
+// a click that moves the reader also moves focus, so a keyboard or a screen reader arrives
+// where the page arrives instead of being left on a control that has scrolled away
+function focusScene(section) {
+  if (!section) return;
+  if (!section.hasAttribute("tabindex")) section.setAttribute("tabindex", "-1");
+  section.focus({ preventScroll: true });
+}
+
+function scrollToScene(index) {
+  const clamped = Math.max(0, Math.min(scenes.length - 1, Number(index)));
+  const target = scenes[clamped];
+  if (!target) return;
+  closePanels({ restoreFocus: false });
+  focusScene(target);
+  const destination = target.getBoundingClientRect().top + window.scrollY;
+  const distance = Math.abs(destination - window.scrollY);
+  const screens = distance / window.innerHeight;
+  // paced by ground covered rather than a flat number: roughly a second per screen, so the
+  // travel space between two chapters is actually travelled. Still capped, so crossing the
+  // whole story is a journey and not a three-second film.
+  const duration = gsap.utils.clamp(1.2, 3, screens * .95);
+  // only a long haul plays at reduced intensity; a next-chapter click keeps every step
+  beginNavigation(clamped, { quiet: screens > 2.6 });
+  if (lenis) {
+    lenis.scrollTo(destination, { duration, easing: TRAVEL_EASE, onComplete: endNavigation });
+    navigationTimer = setTimeout(endNavigation, duration * 1000 + 400);
+  } else {
+    window.scrollTo({ top: destination, behavior: prefersReducedMotion ? "auto" : "smooth" });
+    navigationTimer = setTimeout(endNavigation, prefersReducedMotion ? 60 : duration * 1000 + 400);
+  }
+}
+
+// "Follow the paws" promises a walk, not a jump to the next chapter. It travels in two legs:
+// first down to where the trail starts, so the reader arrives at the first print rather than
+// flying over it, a beat for that print to land, then a slow even walk through the travel
+// space that prints every step on the way into the chapter below.
+let walkToken = 0;
+let walkTimer = 0;
+let walkListeners = null;
+
+function firstPawInside(zone) {
+  if (!zone || !routeY.length) return null;
+  const top = zone.offsetTop;
+  const bottom = top + zone.offsetHeight;
+  const found = routeY.find((value) => value >= top && value <= bottom);
+  return found === undefined ? null : found;
+}
+
+// The reader can always take the walk back. A wheel, a touch or an arrow key belongs to
+// them, so the journey stands down the moment one arrives instead of fighting for the page.
+function releaseWalk() {
+  if (!walkListeners) return;
+  walkListeners.forEach(([type, handler]) => window.removeEventListener(type, handler));
+  walkListeners = null;
+}
+
+function cancelWalk() {
+  walkToken += 1;
+  clearTimeout(walkTimer);
+  releaseWalk();
+  endNavigation();
+}
+
+function guardWalk() {
+  releaseWalk();
+  const handler = () => cancelWalk();
+  walkListeners = [["wheel", handler], ["touchstart", handler], ["keydown", handler]];
+  walkListeners.forEach(([type]) => window.addEventListener(type, handler, { passive: true }));
+}
+
+function followThePaws(zoneSelector, index) {
+  const clamped = Math.max(0, Math.min(scenes.length - 1, Number(index)));
+  const scene = scenes[clamped];
+  const zone = document.querySelector(zoneSelector);
+  const pawY = firstPawInside(zone);
+  // without Lenis there is no journey to pace, and reduced motion asked for none
+  if (!lenis || prefersReducedMotion || !scene || pawY === null) { scrollToScene(index); return; }
+
+  closePanels({ restoreFocus: false });
+  focusScene(scene);
+  const viewport = window.innerHeight;
+  const storyTop = storyPage.getBoundingClientRect().top + window.scrollY;
+  const sceneTop = scene.getBoundingClientRect().top + window.scrollY;
+  // the first print lights at 92% of the frame, so stopping with it at 80% means it is
+  // already on the ground and low in view — the walk then moves up through the trail
+  const trailhead = gsap.utils.clamp(window.scrollY, sceneTop, storyTop + pawY - viewport * .8);
+  const approach = gsap.utils.clamp(.7, 1.6, Math.abs(trailhead - window.scrollY) / viewport * .9);
+  const walk = gsap.utils.clamp(2.4, 4.6, Math.abs(sceneTop - trailhead) / viewport * 2.2);
+  const token = ++walkToken;
+
+  // every step plays: this journey is the paws, so nothing is dimmed on the way
+  beginNavigation(clamped, { quiet: false });
+  guardWalk();
+
+  const walkThrough = () => {
+    if (token !== walkToken) return;
+    lenis.scrollTo(sceneTop, {
+      duration: walk,
+      easing: WALK_EASE,
+      onComplete: () => { if (token === walkToken) { releaseWalk(); endNavigation(); } },
+    });
+    navigationTimer = setTimeout(() => { if (token === walkToken) { releaseWalk(); endNavigation(); } }, walk * 1000 + 400);
+  };
+
+  const arrive = () => {
+    if (token !== walkToken) return;
+    clearTimeout(walkTimer);
+    // a held beat at the trailhead: the first print reads before the walk sets off
+    walkTimer = setTimeout(walkThrough, 320);
+  };
+
+  lenis.scrollTo(trailhead, { duration: approach, easing: TRAVEL_EASE, onComplete: arrive });
+  clearTimeout(walkTimer);
+  walkTimer = setTimeout(arrive, approach * 1000 + 260);
+}
+
+document.querySelectorAll(".js-scene-link").forEach((control) => {
+  control.addEventListener("click", (event) => {
+    if (control.tagName === "A") event.preventDefault();
+    const trail = control.dataset.sceneWalk;
+    if (trail) followThePaws(trail, control.dataset.sceneTarget || 0);
+    else scrollToScene(control.dataset.sceneTarget || 0);
+  });
+});
+
+const siteMenu = document.querySelector(".site-menu");
+const cartDrawer = document.querySelector(".cart-drawer");
+const scrim = document.querySelector(".page-scrim");
+const menuButton = document.querySelector(".js-open-menu");
+
+// The panels park off-screen with a CSS translateX(105%), which the browser reports back as
+// a pixel matrix — so an xPercent tween has nothing to move and the panel opens out of
+// frame. Normalising the resting state in GSAP's own units keeps both drawers sliding.
+function restPanel(panel) {
+  gsap.set(panel, { x: 0, xPercent: 105, autoAlpha: 0, visibility: "hidden" });
+}
+
+[siteMenu, cartDrawer].forEach(restPanel);
+
+// While a drawer is open it is the only thing on the page. Everything else is made inert —
+// unfocusable and unclickable — so a keyboard cannot tab away into the story behind it, and
+// focus moves into the panel on open and back to whatever opened it on close.
+let panelReturnFocus = null;
+
+function setBackgroundInert(open, panel) {
+  [...document.body.children].forEach((element) => {
+    // the scrim is a close control, so it keeps its clicks; the panels govern themselves
+    if (element === panel || element === scrim || element === siteMenu || element === cartDrawer) return;
+    if (open) element.setAttribute("inert", "");
+    else element.removeAttribute("inert");
+  });
+}
+
+function focusInsidePanel(panel) {
+  const target = panel.querySelector("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+  // preventScroll: the panel slides in under its own animation, and letting focus scroll the
+  // page would move the story behind it
+  target?.focus({ preventScroll: true });
+}
+
+function openPanel(panel) {
+  const other = panel === siteMenu ? cartDrawer : siteMenu;
+  restPanel(other);
+  other.setAttribute("aria-hidden", "true");
+  other.removeAttribute("inert");
+  panelReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  gsap.set(panel, { visibility: "visible" });
+  gsap.to(panel, { xPercent: 0, autoAlpha: 1, duration: .5, ease: EASE.art });
+  gsap.to(scrim, { autoAlpha: 1, visibility: "visible", duration: .3 });
+  panel.setAttribute("aria-hidden", "false");
+  menuButton.setAttribute("aria-expanded", panel === siteMenu ? "true" : "false");
+  document.body.style.overflow = "hidden";
+  setBackgroundInert(true, panel);
+  focusInsidePanel(panel);
+  lenis?.stop();
+}
+
+function closePanels({ restoreFocus = true } = {}) {
+  const wasOpen = [siteMenu, cartDrawer].some((panel) => panel.getAttribute("aria-hidden") === "false");
+  [siteMenu, cartDrawer].forEach((panel) => {
+    gsap.to(panel, { xPercent: 105, autoAlpha: 0, duration: .38, ease: EASE.textOut, onComplete: () => gsap.set(panel, { visibility: "hidden" }) });
+    panel.setAttribute("aria-hidden", "true");
+  });
+  gsap.to(scrim, { autoAlpha: 0, duration: .25, onComplete: () => gsap.set(scrim, { visibility: "hidden" }) });
+  menuButton.setAttribute("aria-expanded", "false");
+  document.body.style.overflow = "";
+  setBackgroundInert(false, null);
+  // The background is focusable again before focus goes back to it, or the return lands
+  // nowhere. The opener can also have gone away while the panel was open — the header hides
+  // itself over the hero and the send-off — so an unfocusable return drops focus to the
+  // document rather than leaving it stranded inside a panel that is now closed.
+  if (wasOpen && restoreFocus) {
+    const openerVisible = panelReturnFocus?.isConnected
+      && (panelReturnFocus.checkVisibility?.({ visibilityProperty: true, opacityProperty: true }) ?? true);
+    if (openerVisible) panelReturnFocus.focus({ preventScroll: true });
+    else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  }
+  panelReturnFocus = null;
+  lenis?.start();
+}
+
+menuButton.addEventListener("click", () => openPanel(siteMenu));
+document.querySelectorAll(".js-open-cart").forEach((button) => button.addEventListener("click", () => openPanel(cartDrawer)));
+document.querySelectorAll(".js-close-menu, .js-close-cart, .js-close-panels").forEach((button) => {
+  // a menu entry that navigates hands focus to where it took the reader, not back to the
+  // button that is now behind a closed panel
+  const navigates = button.classList.contains("js-scene-link") || button.classList.contains("js-go-shop");
+  button.addEventListener("click", () => closePanels({ restoreFocus: !navigates }));
+});
+
+const cart = new Map();
+const cartItems = document.querySelector(".cart-items");
+const cartTotal = document.querySelector(".cart-total b");
+const cartCounts = document.querySelectorAll(".cart-count");
+const checkout = document.querySelector(".cart-checkout");
+const toast = document.querySelector(".toast");
+let toastTimer;
+
+function showToast(message) {
+  clearTimeout(toastTimer);
+  toast.textContent = message;
+  gsap.to(toast, { autoAlpha: 1, y: 0, duration: .28 });
+  toastTimer = setTimeout(() => gsap.to(toast, { autoAlpha: 0, y: 18, duration: .28 }), 2200);
+}
+
+// The three story products are the same goods the shop sells, so they borrow the shop's
+// photography rather than carrying a second copy of it.
+const STORY_PHOTOS = { trail: "treats", cloud: "bed", roam: "collar" };
+let catalogueRegistered = false;
+
+// the shop's catalogue registers into the same map, keyed by its own ids, the first time the
+// shop module arrives — nothing can be in the bag from the shop before that
+function registerCatalogue(catalogue) {
+  if (catalogueRegistered) return;
+  catalogueRegistered = true;
+  catalogue.forEach((product) => {
+    products[product.id] = products[product.id] || { name: product.name, detail: product.detail, price: product.price, code: product.badge ? "•" : "—", image: product.image };
+  });
+  Object.entries(STORY_PHOTOS).forEach(([key, base]) => {
+    const match = catalogue.find((product) => product.id.startsWith(`${base}-`));
+    if (match && products[key]) products[key].image = match.image;
+  });
+  renderCart();
+}
+
+function money(value) {
+  return `EGP ${value.toLocaleString("en-US")}`;
+}
+
+function renderCart() {
+  const entries = [...cart.entries()];
+  const quantity = entries.reduce((sum, [, count]) => sum + count, 0);
+  const total = entries.reduce((sum, [key, count]) => sum + products[key].price * count, 0);
+  cartCounts.forEach((count) => { count.textContent = quantity; });
+  // secondary action: the badge answers whatever changed the bag, wherever the click was
+  pulseCartCount(quantity);
+  cartTotal.textContent = money(total);
+  checkout.disabled = quantity === 0;
+
+  if (!entries.length) {
+    cartItems.innerHTML = '<p class="cart-empty">Your bag is waiting for an adventure.</p>';
+    return;
+  }
+
+  cartItems.innerHTML = entries.map(([key, count]) => {
+    const product = products[key];
+    // the product itself, not a code, so the bag reads as the things in it
+    const art = product.image
+      ? `<span class="cart-item__icon cart-item__icon--photo"><img src="${product.image}" alt="" width="700" height="700" loading="lazy" decoding="async" /></span>`
+      : `<span class="cart-item__icon" aria-hidden="true">${product.code}</span>`;
+    return `<article class="cart-item">${art}<div><strong>${product.name}</strong><small>${product.detail} · Qty ${count}</small></div><div><b>${money(product.price * count)}</b><button type="button" data-remove="${key}">Remove</button></div></article>`;
+  }).join("");
+
+  cartItems.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => {
+    const key = button.dataset.remove;
+    const next = (cart.get(key) || 1) - 1;
+    if (next) cart.set(key, next);
+    else cart.delete(key);
+    renderCart();
+  }));
+}
+
+document.querySelectorAll(".js-add-product").forEach((button) => button.addEventListener("click", () => {
+  const key = button.dataset.product;
+  cart.set(key, (cart.get(key) || 0) + 1);
+  renderCart();
+  showToast(`${products[key].name} joined the trail`);
+  gsap.fromTo(button, { scale: .98 }, { scale: 1, duration: .38, ease: EASE.art });
+}));
+// the button also carries .js-go-checkout, which routes it — a second listener here
+// fired the transition twice and left the view mid-swap for over two seconds
+
+const vetDialog = document.querySelector(".vet-dialog");
+const vetForm = document.querySelector(".vet-form");
+const vetSuccess = document.querySelector(".vet-success");
+
+// --- the booking calendar ----------------------------------------------------------------
+// The three chips cover the next few days; anything further is chosen from a calendar built
+// in the site's own vocabulary rather than the browser's picker, which cannot be styled.
+const calendarRoot = document.querySelector("#vet-calendar");
+const calendarToggle = document.querySelector(".js-open-calendar");
+const customDateInput = document.querySelector("[data-custom-date]");
+const customDateFace = document.querySelector(".date-option--pick b");
+let calendar = null;
+let chosenDate = null;
+
+function setCalendarOpen(open) {
+  if (!calendarRoot) return;
+  calendarToggle.setAttribute("aria-expanded", String(open));
+  if (!open) {
+    gsap.to(calendarRoot, { autoAlpha: 0, y: -6, duration: .22, ease: EASE.textOut, onComplete: () => { calendarRoot.hidden = true; } });
+    return;
+  }
+  if (!calendar) calendar = buildCalendar(calendarRoot, { onSelect: chooseDate });
+  calendar.show(chosenDate);
+  calendarRoot.hidden = false;
+  gsap.fromTo(calendarRoot, { autoAlpha: 0, y: -8 }, { autoAlpha: 1, y: 0, duration: .3, ease: EASE.art });
+  calendar.focusFirst();
+}
+
+// the chosen day becomes the fourth chip's face and the radio's value, so the form still
+// submits one date whichever way it was picked
+function chooseDate(date) {
+  chosenDate = date;
+  customDateInput.value = formatDate(date);
+  customDateInput.checked = true;
+  customDateFace.textContent = shortDate(date);
+  setCalendarOpen(false);
+  calendarToggle.focus();
+}
+
+calendarToggle?.addEventListener("click", () => setCalendarOpen(calendarToggle.getAttribute("aria-expanded") !== "true"));
+// the fourth chip is the calendar: picking it with no date yet opens the month
+customDateInput?.addEventListener("click", () => { if (!customDateInput.value) setCalendarOpen(true); });
+
+function openVetDialog() {
+  closePanels();
+  vetForm.hidden = false;
+  vetSuccess.hidden = true;
+  // a fresh booking starts on the quick chips, with the month put away
+  if (calendarRoot && !calendarRoot.hidden) { calendarRoot.hidden = true; calendarToggle.setAttribute("aria-expanded", "false"); }
+  if (!vetDialog.open) vetDialog.showModal();
+  lenis?.stop();
+  gsap.fromTo(vetDialog, { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: .42, ease: EASE.art });
+}
+
+function closeVetDialog() {
+  vetDialog.close();
+  lenis?.start();
+}
+
+document.querySelectorAll(".js-open-vet").forEach((button) => button.addEventListener("click", openVetDialog));
+document.querySelector(".js-close-vet").addEventListener("click", closeVetDialog);
+vetDialog.addEventListener("click", (event) => {
+  if (event.target !== vetDialog) return;
+  const bounds = vetDialog.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeVetDialog();
+});
+vetForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  vetForm.hidden = true;
+  vetSuccess.hidden = false;
+  gsap.fromTo(vetSuccess, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .4 });
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (vetDialog.open) closeVetDialog();
+  else closePanels();
+});
+
+function setRouteGuideVisible(visible = true) {
+  routeGuideVisible = visible;
+  activePaw = -2;
+  updatePawJourney();
+}
+
+// The opening runs the same hierarchy as every chapter — world, illustration, then the
+// story speaks — only in seconds instead of scroll. Building it paused puts every layer in
+// its starting state behind the loader, so nothing flashes when the loader lifts.
+function prepareHeroIntro() {
+  const intro = gsap.timeline({
+    paused: true,
+    defaults: { ease: EASE.art },
+    onComplete: () => {
+      activePaw = -2;
+      updatePawJourney();
+      buildSceneMotion();
+      resolveChapter();
+      ScrollTrigger.refresh();
+    },
+  });
+
+  intro.call(() => setRouteGuideVisible(true), null, 0);
+  revealEnv(intro, "#scene-love .hero-atmosphere", .3, { t: TIME, stagger: .12 });
+  revealEnv(intro, "#scene-love .hero-environment", .4, { t: TIME, stagger: .1 });
+  revealArt(intro, "#scene-love .hero-ground", .62, { t: TIME, y: 18 });
+  revealArt(intro, "#scene-love .scene-character--hero", .82, { t: TIME, y: 24 });
+  revealEyebrow(intro, "#scene-love .scene-copy--hero .scene-kicker", 1.2, { t: TIME });
+  revealHeadline(intro, "#love-title .line-mask > span", 1.36, { t: TIME });
+  revealBody(intro, "#scene-love .scene-copy--hero .scene-intro", 2.1, { t: TIME });
+  revealCTA(intro, "#scene-love .scene-copy--hero .button", 2.34, { t: TIME });
+  intro.to({}, { duration: .3 });
+
+  routePaws.slice(0, HERO_PAW_COUNT).forEach((paw) => paw.classList.remove("is-past", "is-current"));
+  routeLines.forEach((segment) => segment.line.classList.remove("is-guide", "is-past"));
+  heroIntro = intro;
+}
+
+// a refresh halfway down the page skips the opening entirely: chapter one is behind the
+// user, so its choreography has nothing to say and would only hold the story hostage
+function skipHeroIntro() {
+  heroIntro?.kill();
+  heroIntro = null;
+  gsap.set("#scene-love .hero-atmosphere, #scene-love .hero-environment, #scene-love .hero-ground, #scene-love .scene-character--hero", { clearProps: "all" });
+  gsap.set("#scene-love .scene-copy--hero .scene-kicker, #love-title .line-mask > span, #love-title em, #scene-love .scene-copy--hero .scene-intro, #scene-love .scene-copy--hero .button", { clearProps: "all" });
+  setRouteGuideVisible(true);
+  setChromeVisibility(true, true);
+  buildSceneMotion();
+  resolveChapter();
+  ScrollTrigger.refresh();
+}
+
+// The loader's progress is the same walk the page is about to take: prints placed along a
+// curve, lit in order as loading advances. Positions come from the drawn path itself rather
+// than being typed out, so the curve can be reshaped in the markup and the prints follow.
+const LOADER_STEPS = 13;
+let loaderPaws = [];
+let loaderLit = -1;
+
+function buildLoaderTrail() {
+  const trail = document.querySelector(".loader-trail");
+  const line = trail?.querySelector(".loader-line");
+  const holder = trail?.querySelector(".loader-paws");
+  if (!trail || !line || !holder) return;
+
+  // The curve is written against the real viewport rather than a fixed viewBox: it has to
+  // reach the bottom-left and top-right corners of whatever screen it lands on, and a
+  // stretched viewBox would skew both the curve and the angle every print sits at.
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const svg = line.ownerSVGElement;
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+
+  const x = (ratio) => width * ratio;
+  const y = (ratio) => height * ratio;
+  // one long S: out of the bottom-left corner, across the middle, up into the top-right
+  line.setAttribute("d", [
+    `M ${x(.06)} ${y(.9)}`,
+    `C ${x(.26)} ${y(.95)}, ${x(.29)} ${y(.6)}, ${x(.5)} ${y(.52)}`,
+    `C ${x(.71)} ${y(.44)}, ${x(.74)} ${y(.14)}, ${x(.94)} ${y(.1)}`,
+  ].join(" "));
+
+  const length = line.getTotalLength();
+  for (let step = 0; step <= LOADER_STEPS; step += 1) {
+    const distance = length * (step / LOADER_STEPS);
+    const point = line.getPointAtLength(distance);
+    const before = line.getPointAtLength(Math.max(0, distance - 6));
+    const after = line.getPointAtLength(Math.min(length, distance + 6));
+    const heading = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI;
+    // left and right of the line in turn, so it reads as a walk rather than a dotted line
+    const side = step % 2 === 0 ? -1 : 1;
+    const offset = 11 * side;
+    const normal = (heading + 90) * Math.PI / 180;
+
+    const paw = document.createElement("span");
+    paw.className = "loader-paw";
+    paw.innerHTML = pawMarkup();
+    paw.style.left = `${(point.x + Math.cos(normal) * offset) / width * 100}%`;
+    paw.style.top = `${(point.y + Math.sin(normal) * offset) / height * 100}%`;
+    // every print faces the corner the walk is heading for, rather than turning with each
+    // bend in the curve: one animal crossing the screen, not a rotating dotted line
+    paw.style.setProperty("--paw-rotate", "45deg");
+    holder.append(paw);
+  }
+  loaderPaws = [...holder.children];
+  setLoaderProgress(0);
+}
+
+function setLoaderProgress(progress) {
+  const count = document.querySelector(".loader-count");
+  const value = gsap.utils.clamp(0, 1, progress);
+  if (count) count.textContent = String(Math.round(value * 100)).padStart(2, "0");
+  if (!loaderPaws.length) return;
+  // the print the walk has just reached, so nothing lights before it is stepped on
+  const reached = Math.min(loaderPaws.length - 1, Math.floor(value * loaderPaws.length));
+  if (reached === loaderLit) return;
+  loaderLit = reached;
+  loaderPaws.forEach((paw, index) => {
+    paw.classList.toggle("is-past", index < reached);
+    paw.classList.toggle("is-current", index === reached && value > 0);
+  });
+}
+
+// placed here rather than at the top of the file: the constants above are in the temporal
+// dead zone until this point, and calling earlier throws before a single print is drawn
+buildLoaderTrail();
+
+function finishLoader(onComplete) {
+  const lift = () => {
+    document.querySelector(".loader")?.remove();
+    onComplete?.();
+  };
+
+  // nobody who asked for less motion wants to watch a walk: the trail is shown finished and
+  // the loader steps aside
+  if (prefersReducedMotion) {
+    setLoaderProgress(1);
+    gsap.to(".loader", { autoAlpha: 0, duration: .2, delay: .1, onComplete: lift });
+    return;
+  }
+
+  const counter = { value: 0 };
+  // The walk is the point, so it is given the room to read: the trail fades up, fourteen
+  // prints land over two and a half seconds — roughly a step every 180ms, a walking pace
+  // rather than a flicker — the finished trail holds for a beat, and only then does the
+  // loader lift.
+  gsap.timeline()
+    .fromTo(".loader-trail", { autoAlpha: 0 }, { autoAlpha: 1, duration: .55, ease: "power2.out" }, 0)
+    .fromTo(".loader-brand, .loader-status, .loader-count", { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: .5, stagger: .06, ease: "power2.out" }, .12)
+    .to(counter, { value: 1, duration: 2.5, ease: "power1.inOut", onUpdate: () => setLoaderProgress(counter.value) }, .3)
+    .to(".loader", { yPercent: -100, duration: .8, ease: "power3.inOut", onComplete: lift }, "+=.45");
+}
+
+// A chapter's timeline is written in viewport-heights of scroll, so a genuine resize cannot
+// be answered by refreshing measurements — the timelines are rebuilt against the new screen.
+function refreshLayout({ remeasureMotion = false } = {}) {
+  if (remeasureMotion && sceneMotionBuilt) {
+    killSceneMotion();
+    sceneTimelines = [];
+    sceneMotionBuilt = false;
+    buildSceneMotion();
+  }
+  buildGlobalPawJourney();
+  resolveChapter();
+  ScrollTrigger.refresh();
+}
+
+
+// ============================================================================
+// ROUTER — the story and the shop are two views in one document. Navigating
+// between them never reloads: the outgoing view releases, a cream wipe carries
+// the paw across, and the incoming view arrives with its own reveal. Scroll
+// position is remembered per view, and ScrollTrigger is rebuilt on the way back
+// because its measurements are meaningless while the story is display:none.
+// ============================================================================
+const storyView = document.querySelector(".story-page");
+const shopView = document.querySelector("#shop-view");
+const checkoutView = document.querySelector("#checkout-view");
+const VIEWS = { story: storyView, shop: shopView, checkout: checkoutView };
+const PATHS = { story: "/", shop: "/shop", checkout: "/checkout" };
+// One document serves three routes, so title, description and canonical have to follow the
+// route. Without this a crawler and a shared link both see the story's metadata on the shop
+// and the checkout.
+const META = {
+  story: {
+    title: "PAWTOPIA — Better care for the pets you love",
+    description: "Pawtopia brings thoughtful pet essentials and gentle veterinary care together in one illustrated journey.",
+  },
+  shop: {
+    title: "Shop Pawtopia — Food, care and everyday pet essentials",
+    description: "Premium food, grooming, toys and accessories for dogs and cats, delivered across Egypt.",
+  },
+  checkout: {
+    title: "Checkout — Pawtopia",
+    description: "Complete your Pawtopia order: delivery details, payment on delivery, and a clear total.",
+  },
+};
+
+function applyRouteMeta(name) {
+  const meta = META[name] || META.story;
+  document.title = meta.title;
+  const set = (selector, attribute, value) => {
+    const element = document.querySelector(selector);
+    if (element) element.setAttribute(attribute, value);
+  };
+  set('meta[name="description"]', "content", meta.description);
+  set('meta[property="og:title"]', "content", meta.title);
+  set('meta[property="og:description"]', "content", meta.description);
+  set('meta[property="og:url"]', "content", `${location.origin}${PATHS[name] || "/"}`);
+  // absolute: crawlers do not resolve a relative image against the page they scraped
+  set('meta[property="og:image"]', "content", `${location.origin}/pawtopia-share.jpg`);
+  set('meta[name="twitter:image"]', "content", `${location.origin}/pawtopia-share.jpg`);
+  set('link[rel="canonical"]', "href", `${location.origin}${PATHS[name] || "/"}`);
+}
+const wipe = (() => {
+  const element = document.createElement("div");
+  element.className = "view-wipe";
+  element.setAttribute("aria-hidden", "true");
+  element.innerHTML = `<span class="paw-mark">${pawMarkup()}</span>`;
+  document.body.append(element);
+  return element;
+})();
+
+let routeBusy = false;
+let pendingRoute = null;
+let storyScroll = 0;
+let shopBuilt = false;
+let checkoutBuilt = false;
+
+function setRoute(next, { push = true, immediate = false } = {}) {
+  // A navigation that lands mid-transition used to be dropped on the floor — the back
+  // button would change the URL and nothing else. It waits its turn instead.
+  if (routeBusy) { pendingRoute = { next, push, immediate }; return; }
+  if (next === route) return;
+  routeBusy = true;
+  // The arriving route's code may still be in flight. The flag above is already set, so a
+  // second click queues rather than racing, and the wipe does not start over a view that
+  // cannot be built yet.
+  routeModule(next).then(() => startRoute(next, { push, immediate }));
+}
+
+function startRoute(next, { push, immediate }) {
+  // the route link itself is about to be hidden, so focus goes to the arriving view below
+  closePanels({ restoreFocus: false });
+
+  const leavingStory = route === "story";
+  if (leavingStory) storyScroll = window.scrollY;
+  if (push) history.pushState({ route: next }, "", PATHS[next]);
+
+  const swap = () => {
+    Object.entries(VIEWS).forEach(([name, element]) => { if (element) element.hidden = name !== next; });
+    document.body.classList.toggle("is-shop", next !== "story");
+    applyRouteMeta(next);
+    setChromeVisibility(true, true);
+
+    if (next === "shop" && !shopBuilt) { shopModule.buildShop({ onAdd: addShopProduct }); shopBuilt = true; }
+    if (next === "checkout") {
+      if (!checkoutBuilt) { checkoutModule.buildCheckout({ getCart: cartLines, onPlaced: emptyCart }); checkoutBuilt = true; }
+      else { checkoutModule.resetCheckout(); checkoutModule.renderCheckout(); }
+    }
+    if (next !== "shop") shopModule?.resetShopMotion();
+
+    route = next;
+    // a hidden view measures as zero, so every trigger is re-measured after the swap
+    const target = next === "story" ? storyScroll : 0;
+    lenis?.scrollTo(target, { immediate: true });
+    window.scrollTo(0, target);
+    ScrollTrigger.refresh();
+    if (next === "story") { updatePawJourney(); resolveChapter(); }
+  };
+
+  const release = () => {
+    routeBusy = false;
+    // A route change replaces the page under a screen reader without a load event, so focus
+    // moves to the arriving view and it reads its own heading. It waits for the wipe to
+    // finish: the incoming view is held at visibility hidden while it plays, and a hidden
+    // element cannot hold focus — the browser hands it straight back to the document.
+    focusScene(VIEWS[route]);
+    const queued = pendingRoute;
+    pendingRoute = null;
+    if (queued) setRoute(queued.next, { push: queued.push, immediate: queued.immediate });
+  };
+
+  if (immediate || prefersReducedMotion) {
+    swap();
+    gsap.set(wipe, { autoAlpha: 0, visibility: "hidden" });
+    release();
+    return;
+  }
+
+  const outgoing = VIEWS[route];
+  const incoming = VIEWS[next];
+  gsap.timeline({ onComplete: release })
+    // the view releases first, the way a chapter lets go before the paws take over
+    .to(outgoing, { autoAlpha: 0, y: -18, duration: .38, ease: EASE.textOut }, 0)
+    .set(wipe, { visibility: "visible" }, 0)
+    .fromTo(wipe, { autoAlpha: 0 }, { autoAlpha: 1, duration: .34, ease: EASE.env }, .1)
+    .fromTo(wipe.querySelector(".paw-mark"), { autoAlpha: 0, scale: .7, y: 14 }, { autoAlpha: 1, scale: 1, y: 0, duration: .3, ease: EASE.art }, .18)
+    .call(swap, null, .5)
+    .to(wipe.querySelector(".paw-mark"), { autoAlpha: 0, scale: 1.25, duration: .28, ease: EASE.art }, .58)
+    .to(wipe, { autoAlpha: 0, duration: .4, ease: EASE.env }, .62)
+    .set(wipe, { visibility: "hidden" })
+    .fromTo(incoming, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .5, ease: EASE.art }, .66)
+    .add(() => {
+      if (next === "shop") shopModule?.buildShopMotion();
+      if (next === "checkout") checkoutModule?.buildCheckoutMotion();
+    }, .68);
+}
+
+// the shop's pagination needs the smooth scroller when one is running
+window.__pawtopiaScrollTo = (top) => {
+  if (lenis) lenis.scrollTo(top, { duration: 1 });
+  else window.scrollTo({ top, behavior: prefersReducedMotion ? "auto" : "smooth" });
+};
+
+function cartLines() {
+  return [...cart.entries()].map(([key, count]) => ({ ...products[key], count }));
+}
+
+function emptyCart() {
+  cart.clear();
+  renderCart();
+}
+
+function addShopProduct(id) {
+  const product = shopModule?.CATALOGUE.find((entry) => entry.id === id);
+  if (!product) return;
+  cart.set(id, (cart.get(id) || 0) + 1);
+  renderCart();
+  showToast(`${product.name} joined the trail`);
+}
+
+document.querySelectorAll(".js-go-shop").forEach((control) => control.addEventListener("click", (event) => {
+  event.preventDefault();
+  setRoute("shop");
+}));
+
+document.querySelectorAll(".js-go-story").forEach((control) => control.addEventListener("click", (event) => {
+  event.preventDefault();
+  setRoute("story");
+}));
+
+document.querySelectorAll(".js-go-checkout").forEach((control) => control.addEventListener("click", (event) => {
+  event.preventDefault();
+  setRoute("checkout");
+}));
+
+// the brand mark and the chapter links belong to the story, so they carry the reader back
+document.querySelectorAll(".js-scene-link").forEach((control) => control.addEventListener("click", () => {
+  if (route === "shop") setRoute("story");
+}));
+
+window.addEventListener("popstate", (event) => {
+  const next = event.state?.route || (location.pathname.startsWith("/shop") ? "shop" : location.pathname.startsWith("/checkout") ? "checkout" : "story");
+  setRoute(next, { push: false });
+});
+
+function initialize() {
+  setupSmoothScroll();
+  buildMicroInteractions();
+  applyRouteMeta(location.pathname.startsWith("/shop") ? "shop" : location.pathname.startsWith("/checkout") ? "checkout" : "story");
+  const booted = location.pathname.startsWith("/shop") ? "shop" : location.pathname.startsWith("/checkout") ? "checkout" : null;
+  if (booted) {
+    // a deep link has to wait for the route's code before it can build or animate the view
+    routeModule(booted).then(() => {
+      setRoute(booted, { push: false, immediate: true });
+      if (booted === "shop") shopModule?.buildShopMotion(); else checkoutModule?.buildCheckoutMotion();
+    });
+  }
+  // the hero headline and the send-off get the same masked lines every other headline uses
+  maskLines(document.querySelector("#love-title"));
+  maskLines(document.querySelector(".footer-headline"));
+  maskLines(document.querySelector(".interlude-quote p"));
+  buildGlobalPawJourney();
+  const deepLoad = window.scrollY > window.innerHeight * .5;
+
+  if (prefersReducedMotion) {
+    setRouteGuideVisible(true);
+    setChromeVisibility(true, true);
+    buildReducedMotion();
+  } else if (deepLoad) {
+    skipHeroIntro();
+  } else {
+    prepareHeroIntro();
+    setChromeVisibility(false, true);
+  }
+
+  resolveChapter();
+  updatePawJourney();
+  ScrollTrigger.refresh();
+  finishLoader(() => {
+    heroIntro?.play();
+    // late art and late fonts both change the page height the trail was measured against
+    ScrollTrigger.refresh();
+  });
+
+  document.fonts?.ready.then(() => refreshLayout());
+
+  // The shop and checkout chunks are fetched once the story is on screen and the main thread
+  // is free, so a click on Shop opens with the code already in cache while the first paint
+  // never had to wait for it.
+  const warm = () => routeModule("checkout");
+  if (route === "story") (window.requestIdleCallback || ((run) => setTimeout(run, 1800)))(warm, { timeout: 4000 });
+}
+
+window.addEventListener("scroll", scheduleRouteUpdate, { passive: true });
+
+// Mobile browsers resize by tens of pixels whenever their chrome hides; rebuilding the walk
+// there would jump the trail mid-scroll. Only a real layout change earns a rebuild.
+function handleViewportChange() {
+  clearTimeout(window.__pawtopiaResize);
+  window.__pawtopiaResize = setTimeout(() => {
+    const widthChanged = window.innerWidth !== viewportWidth;
+    const heightDelta = Math.abs(window.innerHeight - viewportHeight);
+    if (!widthChanged && heightDelta < 120) { ScrollTrigger.refresh(); return; }
+    viewportWidth = window.innerWidth;
+    viewportHeight = window.innerHeight;
+    refreshLayout({ remeasureMotion: true });
+  }, 180);
+}
+
+window.addEventListener("resize", handleViewportChange);
+window.addEventListener("orientationchange", handleViewportChange);
+window.addEventListener("pageshow", (event) => { if (event.persisted) refreshLayout(); });
+window.addEventListener("pagehide", () => {
+  cancelAnimationFrame(routeFrame);
+  clearTimeout(navigationTimer);
+  ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+  lenis?.destroy();
+});
+
+renderCart();
+if (document.readyState === "complete") initialize();
+else window.addEventListener("load", initialize, { once: true });

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254">
+  <defs>
+    <linearGradient id="birdBlue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B3150"/>
+      <stop offset="100%" stop-color="#061E31"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Large bird -->
+  <path
+    d="M 610 411
+       C 674 363, 733 363, 785 402
+       C 814 424, 835 455, 852 507
+       C 891 450, 930 407, 971 380
+       C 1015 351, 1060 355, 1104 379"
+    fill="none"
+    stroke="url(#birdBlue)"
+    stroke-width="38"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Small bird -->
+  <path
+    d="M 218 817
+       C 270 790, 317 796, 347 821
+       C 360 832, 369 848, 374 881
+       C 401 839, 430 810, 461 795
+       C 487 783, 513 784, 538 798"
+    fill="none"
+    stroke="url(#birdBlue)"
+    stroke-width="31"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

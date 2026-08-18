@@ -1,0 +1,138 @@
+/* ============================================================================
+   MICRO-INTERACTIONS — feedback at the scale of a single element: 100-300ms,
+   ease-out, transform and opacity only. Every rule that moves something sits
+   behind a real pointer, and the reduced-motion block at the end takes the
+   movement away while leaving the colour change that carries the meaning.
+
+   These use the `translate` and `scale` properties rather than `transform`,
+   because GSAP owns `transform` on most of these elements during the scene
+   reveals — the two compose instead of fighting.
+   ============================================================================ */
+
+:root {
+  --micro-fast: 120ms;
+  --micro-base: 200ms;
+  --micro-settle: 280ms;
+  --micro-out: cubic-bezier(.22, .72, .2, 1);
+  --micro-spring: cubic-bezier(.34, 1.42, .64, 1);
+}
+
+/* --- buttons: anticipate on hover, compress on press ---------------------- */
+/* one class deeper than the base rule in style.css, which would otherwise win the cascade
+   and drop the shadow from the transition list */
+body .button { transition: translate var(--micro-fast) var(--micro-out), scale var(--micro-fast) var(--micro-out), box-shadow var(--micro-base) var(--micro-out), background-color var(--micro-base) ease, color var(--micro-base) ease; }
+.button span { display: inline-block; transition: translate var(--micro-base) var(--micro-out); }
+.button--coral { box-shadow: 0 1px 2px rgba(242,113,82,.18); }
+
+/* --- text links: the rule draws in from the left -------------------------- */
+.text-cta { position: relative; border-bottom-color: transparent !important; }
+.text-cta::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: currentColor; scale: 0 1; transform-origin: left center; transition: scale var(--micro-settle) var(--micro-out); }
+.text-cta span { display: inline-block; transition: translate var(--micro-base) var(--micro-out); }
+
+.header-link { position: relative; }
+.header-link::after { content: ""; position: absolute; right: 0; bottom: -3px; left: 0; height: 1px; background: currentColor; scale: 0 1; transform-origin: right center; transition: scale var(--micro-base) var(--micro-out); }
+
+/* --- the menu button becomes a close mark --------------------------------- */
+.menu-button i { transition: translate var(--micro-base) var(--micro-out), rotate var(--micro-base) var(--micro-out), width var(--micro-base) var(--micro-out); }
+.menu-button[aria-expanded="true"] i:first-child { translate: 0 3.75px; rotate: 45deg; }
+.menu-button[aria-expanded="true"] i:last-child { translate: 0 -3.75px; rotate: -45deg; }
+
+/* --- cart badge: a small bump when the count changes ---------------------- */
+.cart-count { transition: scale var(--micro-base) var(--micro-spring), background-color var(--micro-base) ease; }
+.cart-count.is-bumped { scale: 1.32; background: var(--coral); }
+
+/* --- chapter dots: the active one grows, the rest answer to hover --------- */
+.scene-progress button { transition: opacity var(--micro-base) ease; }
+.scene-progress span { transition: translate var(--micro-base) var(--micro-out); }
+
+/* --- shop: category tiles ------------------------------------------------- */
+.shop-category { transition: border-color var(--micro-base) ease, background-color var(--micro-base) ease, translate var(--micro-base) var(--micro-out), scale var(--micro-fast) var(--micro-out); }
+.shop-category:active { scale: .985; }
+.shop-category__art { transition: scale var(--micro-settle) var(--micro-spring), background-color var(--micro-base) ease; }
+.shop-category.is-active .shop-category__art { scale: 1.06; }
+
+/* --- shop: filter ticks draw themselves ----------------------------------- */
+.filter-group label { position: relative; }
+.filter-group input[type="checkbox"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.filter-tick { position: relative; display: grid; place-items: center; flex: none; width: 15px; height: 15px; border: 1px solid rgba(18,58,86,.32); border-radius: 4px; transition: border-color var(--micro-base) ease, background-color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
+.filter-tick svg { width: 11px; height: 11px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 16; transition: stroke-dashoffset var(--micro-base) var(--micro-out) 40ms; }
+.filter-group input:checked + .filter-tick { border-color: var(--coral); background: var(--coral); }
+.filter-group input:checked + .filter-tick svg { stroke-dashoffset: 0; }
+.filter-group input:focus-visible + .filter-tick { outline: 2px solid var(--coral); outline-offset: 3px; }
+.filter-group label:active .filter-tick { scale: .9; }
+
+/* --- shop: product cards -------------------------------------------------- */
+.product-card { transition: border-color var(--micro-settle) ease, translate var(--micro-settle) var(--micro-out), box-shadow var(--micro-settle) ease; }
+.product-save { transition: color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
+.product-save:active { scale: .86; }
+.product-add { position: relative; overflow: hidden; transition: background-color var(--micro-base) ease, color var(--micro-base) ease, border-color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
+.product-add:active { scale: .9; }
+.product-add svg { transition: translate var(--micro-base) var(--micro-out), opacity var(--micro-fast) ease; }
+/* the tick that confirms the add, drawn over the bag icon for a beat */
+.product-add::after { content: ""; position: absolute; inset: 0; background: var(--coral); opacity: 0; transition: opacity var(--micro-base) ease; }
+.product-add.is-added { border-color: var(--coral); color: #fff; }
+.product-add.is-added::after { opacity: 1; }
+.product-add.is-added svg { position: relative; z-index: 1; translate: 0 -2px; }
+
+/* --- shop: pagination ----------------------------------------------------- */
+.page-step { transition: background-color var(--micro-base) ease, border-color var(--micro-base) ease, color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
+.page-step:not(:disabled):active { scale: .92; }
+.page-number { position: relative; transition: color var(--micro-base) ease; }
+
+/* --- checkout: the delivery and payment cards ----------------------------- */
+.choice-cards span { transition: border-color var(--micro-base) ease, background-color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
+.choice-cards label:active span { scale: .985; }
+.checkout-form .field-label input { transition: border-color var(--micro-base) ease, background-color var(--micro-base) ease; }
+
+/* --- story: the service rows and destinations ----------------------------- */
+.service-list button { transition: translate var(--micro-base) var(--micro-out); }
+.service-list span { transition: color var(--micro-base) ease; }
+.product-note { transition: background-color var(--micro-base) ease, translate var(--micro-base) var(--micro-out); }
+.product-note b { transition: color var(--micro-base) ease; }
+
+/* --- hover states: only where there is a real pointer --------------------- */
+@media (hover: hover) and (pointer: fine) {
+  .button:hover { box-shadow: 0 6px 18px rgba(18,58,86,.12); }
+  .button--coral:hover { box-shadow: 0 8px 22px rgba(242,113,82,.28); }
+  .button:hover span { translate: 3px 0; }
+  .button:active span { translate: 1px 0; }
+  .js-close-product:hover span { translate: -3px 0; }
+  .js-close-product:active span { translate: -1px 0; }
+
+  .text-cta:hover::after { scale: 1 1; transform-origin: left center; }
+  .text-cta:hover span { translate: 5px 0; }
+  .header-link:hover::after { scale: 1 1; transform-origin: left center; }
+
+  .scene-progress button:hover { opacity: .8; }
+  .scene-progress button:hover span { translate: 2px 0; }
+
+  .shop-category:hover .shop-category__art { scale: 1.08; }
+  .filter-group label:hover .filter-tick { border-color: var(--coral); }
+  .product-save:hover { scale: 1.12; }
+  .page-number:hover { color: var(--navy); }
+
+  .service-list button:hover { translate: 4px 0; }
+  .service-list button:hover span { color: var(--coral); }
+  .product-note:hover { translate: 0 -2px; }
+  .product-note:hover b { color: var(--coral); }
+  .choice-cards label:hover span { border-color: rgba(242,113,82,.5); }
+}
+
+/* --- the magnetic pull on the primary calls to action --------------------- */
+.is-magnetic { transition: translate var(--micro-settle) var(--micro-out); }
+.is-magnetic.is-pulling { transition: translate 60ms linear; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* the movement goes, the colour and the tick stay: they carry the meaning */
+  .button, .button span, .text-cta span, .shop-category, .shop-category__art, .product-card,
+  .product-save, .product-add, .page-step, .choice-cards span, .service-list button,
+  .product-note, .cart-count, .is-magnetic, .scene-progress span, .menu-button i {
+    transition-property: opacity, color, background-color, border-color !important;
+    transition-duration: 160ms !important;
+    translate: none !important;
+    scale: none !important;
+    rotate: none !important;
+  }
+  .text-cta::after, .header-link::after { transition: none !important; scale: 1 1 !important; }
+  .filter-tick svg { transition: none !important; }
+}
