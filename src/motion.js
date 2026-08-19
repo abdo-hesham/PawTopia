@@ -179,6 +179,9 @@ export function spaceLines(root = document) {
     if (line === line.parentNode?.lastElementChild) return;
     const next = line.nextSibling;
     if (next && next.nodeType === Node.TEXT_NODE && /\s/.test(next.textContent)) return;
+    // a line that already ends in a space brought it from the markup, where the break it
+    // replaced used to be — adding a second one would double the gap in the copied text
+    if (/\s$/.test(line.textContent)) return;
     line.after(document.createTextNode(" "));
   });
 }
