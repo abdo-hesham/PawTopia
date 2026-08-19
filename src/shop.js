@@ -156,7 +156,6 @@ function cardMarkup(product) {
     <h3 id="${nameId}"><button class="product-open" type="button" data-open="${product.id}">${product.name}</button></h3>
     <p class="product-blurb">${product.blurb}</p>
     <p class="product-variant">${product.detail}<span class="sr-only"> · ${categoryLabel(product.category)}</span></p>
-    <p class="product-rating"><b class="product-score" aria-hidden="true">${product.rating}</b><small aria-hidden="true">(${product.reviews})</small><span class="sr-only">Rated ${product.rating} out of 5 from ${product.reviews} reviews</span></p>
     <p class="product-foot"><b>${money(product.price)}</b><button class="product-add" type="button" data-add="${product.id}" aria-label="Add ${product.name} to your bag, ${money(product.price)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h2.2l2.1 9.4a2 2 0 0 0 2 1.6h6.6a2 2 0 0 0 2-1.5L21 8H7" /><circle cx="10.5" cy="19.5" r="1.3" /><circle cx="17" cy="19.5" r="1.3" /></svg></button></p>
   </article>`;
 }
