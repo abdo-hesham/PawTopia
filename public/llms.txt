@@ -1,0 +1,17 @@
+# Pawtopia
+
+> An illustrated scroll story for a pet care brand: a seven-chapter journey from bringing a
+> pet home to the veterinary care they need, with a shop and a checkout on the same page.
+> Built with vanilla JavaScript, Vite, GSAP + ScrollTrigger and Lenis. Prices are in EGP and
+> the catalogue is a portfolio piece — the goods, stock and clinic availability are fictional.
+
+## Pages
+
+- [The story](https://pawtopia-six.vercel.app/): the seven chapters — Love, Choice, Discovery, The Pawtopia loop, Veterinary, Family, The next step — told as one continuous paw trail.
+- [Shop](https://pawtopia-six.vercel.app/shop): pet food, treats, toys, bedding and care essentials, filterable by pet and category.
+- [Checkout](https://pawtopia-six.vercel.app/checkout): delivery, payment and order summary. Payment is on delivery; no card details are collected.
+
+## Notes
+
+- All three paths are views of one document, swapped by a client-side router over the History API.
+- The site is a portfolio piece. Product prices, stock and veterinary appointment slots are illustrative, not a live inventory or a real booking system.

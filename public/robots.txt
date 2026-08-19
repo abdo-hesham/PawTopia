@@ -1,0 +1,5 @@
+# Pawtopia
+User-agent: *
+Allow: /
+
+Sitemap: https://pawtopia-six.vercel.app/sitemap.xml

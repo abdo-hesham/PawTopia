@@ -63,9 +63,9 @@ Or from the CLI:
 npx vercel
 ```
 
-### One thing to change before going live
+### The host is written down in four places
 
-`index.html` hard-codes `https://pawtopia.example` in the canonical link and the Open Graph tags. Replace it with the real domain — those five values are the only place the host is written down. Every route rewrites them at runtime from `location.origin`, so the placeholder only reaches crawlers that do not run scripts.
+`index.html` (canonical + Open Graph), `public/robots.txt`, `public/sitemap.xml` and `public/llms.txt` all name `https://pawtopia-six.vercel.app`. Change all four together when the site moves to its own domain. Every route rewrites the document's own tags at runtime from `location.origin`, so a stale host there only reaches crawlers that do not run scripts — the three text files are served as written.
 
 The four social links in both footers point at the platform home pages as placeholders. Swap the `href` values in `index.html` (`.footer-social`) for the real profiles before launch.
 
