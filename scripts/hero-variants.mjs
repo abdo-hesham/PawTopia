@@ -7,8 +7,11 @@ import sharp from "sharp";
 // gets a narrow twin and the markup picks between them with srcset.
 const VARIANTS = [
   { name: "left-environment", width: 700 },
+  { name: "left-environment", width: 950 },
   { name: "right-environment", width: 700 },
+  { name: "right-environment", width: 950 },
   { name: "ground-details", width: 1100 },
+  { name: "ground-details", width: 1450 },
 ];
 
 const dir = new URL("../assets/", import.meta.url);

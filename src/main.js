@@ -1562,6 +1562,7 @@ const wipe = (() => {
 })();
 
 let routeBusy = false;
+let routeTimer = 0;
 let pendingRoute = null;
 let storyScroll = 0;
 let shopBuilt = false;
@@ -1575,11 +1576,31 @@ function setRoute(next, { push = true, immediate = false } = {}) {
   routeBusy = true;
   // The arriving route's code may still be in flight. The flag above is already set, so a
   // second click queues rather than racing, and the wipe does not start over a view that
-  // cannot be built yet.
-  routeModule(next).then(() => startRoute(next, { push, immediate }));
+  // cannot be built yet. A chunk that never arrives releases the flag instead of wedging
+  // every later navigation behind it.
+  routeModule(next)
+    .then(() => startRoute(next, { push, immediate }))
+    .catch(() => { routeBusy = false; pendingRoute = null; });
 }
 
 function startRoute(next, { push, immediate }) {
+  // The wipe normally releases the flag when it completes. A timeline that never finishes —
+  // a tab throttled to a stop mid-transition, say — would otherwise leave routing wedged
+  // for the rest of the session, so the state is settled either way.
+  clearTimeout(routeTimer);
+  routeTimer = setTimeout(() => {
+    if (!routeBusy) return;
+    Object.entries(VIEWS).forEach(([name, element]) => { if (element) element.hidden = name !== next; });
+    gsap.set([VIEWS[next], wipe].filter(Boolean), { clearProps: "opacity,visibility,transform" });
+    gsap.set(wipe, { autoAlpha: 0, visibility: "hidden" });
+    route = next;
+    applyRouteMeta(next);
+    routeBusy = false;
+    const queued = pendingRoute;
+    pendingRoute = null;
+    if (queued) setRoute(queued.next, { push: queued.push, immediate: queued.immediate });
+  }, 3200);
+
   // the route link itself is about to be hidden, so focus goes to the arriving view below
   closePanels({ restoreFocus: false });
 
@@ -1610,6 +1631,8 @@ function startRoute(next, { push, immediate }) {
   };
 
   const release = () => {
+    clearTimeout(routeTimer);
+    if (!routeBusy) return;
     routeBusy = false;
     // A route change replaces the page under a screen reader without a load event, so focus
     // moves to the arriving view and it reads its own heading. It waits for the wipe to

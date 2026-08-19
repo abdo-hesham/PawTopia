@@ -2,7 +2,6 @@
 @import "@fontsource/source-serif-4/400-italic.css";
 @import "@fontsource/barlow-condensed/400.css";
 @import "@fontsource/barlow-condensed/500.css";
-@import "@fontsource/barlow-condensed/600.css";
 @import "./shop.css";
 @import "./micro.css";
 
@@ -146,7 +145,7 @@ em { color: var(--coral); font-weight: 400; }
 .site-header.is-visible { pointer-events: auto; }
 .brand { display: inline-flex; align-items: center; gap: 10px; justify-self: start; }
 .brand > span:last-child { display: grid; }
-.brand strong { font-size: 29px; line-height: .9; letter-spacing: .01em; font-weight: 600; }
+.brand strong { font-size: 29px; line-height: .9; letter-spacing: .015em; font-weight: 500; }
 .brand small { margin-top: 5px; font-size: 10px; letter-spacing: .07em; }
 /* no backdrop-filter here: this pill is on screen for the whole journey, and blurring what
    is behind it costs a full-viewport snapshot every frame */
