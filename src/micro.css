@@ -126,7 +126,8 @@ body .button { transition: translate var(--micro-fast) var(--micro-out), scale v
   /* the movement goes, the colour and the tick stay: they carry the meaning */
   .button, .button span, .text-cta span, .shop-category, .shop-category__art, .product-card,
   .product-save, .product-add, .page-step, .choice-cards span, .service-list button,
-  .product-note, .cart-count, .is-magnetic, .scene-progress span, .menu-button i {
+  .product-note, .cart-count, .is-magnetic, .scene-progress span, .menu-button i,
+  nav.footer-social a {
     transition-property: opacity, color, background-color, border-color !important;
     transition-duration: 160ms !important;
     translate: none !important;

@@ -799,7 +799,7 @@ function buildFooterMotion() {
   footer.fromTo(footer.scope(".footer-rule"), { autoAlpha: 0 }, { autoAlpha: 1, duration: SCRUB.env, ease: EASE.env }, .26);
   revealHeadline(footer, footer.scope(".footer-headline .line-mask > span"), .34);
   revealBody(footer, footer.scope(".footer-note"), .52);
-  revealRows(footer, footer.scope(".footer-legal .brand, .footer-meta"), .62, { y: 12 });
+  revealRows(footer, footer.scope(".footer-legal .brand, .footer-social, .footer-meta"), .62, { y: 12 });
 }
 
 function buildSceneMotion() {

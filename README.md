@@ -67,6 +67,8 @@ npx vercel
 
 `index.html` hard-codes `https://pawtopia.example` in the canonical link and the Open Graph tags. Replace it with the real domain — those five values are the only place the host is written down. Every route rewrites them at runtime from `location.origin`, so the placeholder only reaches crawlers that do not run scripts.
 
+The four social links in both footers point at the platform home pages as placeholders. Swap the `href` values in `index.html` (`.footer-social`) for the real profiles before launch.
+
 ## Accessibility and motion
 
 - `prefers-reduced-motion` is honoured throughout: the scroll story plays as a static page, the loader shows its trail already finished, and micro-interactions keep the colour change while dropping the movement.

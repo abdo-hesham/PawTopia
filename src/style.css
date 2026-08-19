@@ -556,6 +556,15 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .footer-legal nav { display: flex; align-items: center; gap: clamp(16px, 2.2vw, 38px); }
 .footer-legal nav i { width: 1px; height: 13px; background: rgba(18,58,86,.3); }
 
+/* Follow the pack. The icons are drawn at the same stroke weight as the cart and the heart
+   above them, so they read as part of the illustration rather than as borrowed platform
+   badges. `nav.footer-social` rather than `.footer-social`, because `.footer-legal nav` and
+   `.shop-footer nav` are both one class plus one element and would otherwise win the tie. */
+nav.footer-social { display: flex; align-items: center; gap: clamp(9px, 1vw, 14px); }
+nav.footer-social a { display: grid; place-content: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; color: var(--navy); opacity: 1; transition: color var(--micro-base) ease, border-color var(--micro-base) ease, background-color var(--micro-base) ease, translate var(--micro-fast) var(--micro-out), scale var(--micro-fast) var(--micro-out); }
+nav.footer-social svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+nav.footer-social a:active { translate: 0; scale: .93; }
+
 .site-menu, .cart-drawer { position: fixed; z-index: 120; top: 0; right: 0; width: min(480px,100%); height: 100dvh; display: flex; flex-direction: column; padding: 30px clamp(24px,4vw,52px); visibility: hidden; transform: translateX(105%); background: var(--cream); box-shadow: -25px 0 80px rgba(18,58,86,.13); }
 .site-menu { background: var(--sage-light); }
 .panel-top { display: flex; align-items: center; justify-content: space-between; }
@@ -648,6 +657,10 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
   .hero-atmosphere--right { right: 18px; }
 }
 
+@media (hover: hover) and (pointer: fine) {
+  nav.footer-social a:hover { translate: 0 -2px; color: var(--cream); border-color: var(--coral); background: var(--coral); }
+}
+
 @media (max-width: 900px) {
   /* the same ladder, one octave down: the scale is redefined here rather than every
      headline being given a second size of its own */
@@ -668,7 +681,10 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
   .brand small { display: none; }
   .brand .paw-mark { transform: scale(.82); transform-origin: left center; margin-right: -5px; }
   .chapter-marker { position: fixed; top: 76px; right: 0; left: 0; width: fit-content; margin-inline: auto; padding: 7px 11px; font-size: 9px; }
-  .header-actions .header-link, .header-actions .button { display: none; }
+  /* Shop and Book a Vet fold into the menu, but the bag does not: nothing inside the menu
+     opens it, so hiding it here left the cart unreachable on a phone. */
+  .header-actions .header-link:not(.header-cart), .header-actions .button { display: none; }
+  .header-cart { min-width: 42px; height: 40px; justify-content: flex-end; }
   .story-scene { min-height: 104svh; }
   .story-scene--hero { min-height: 126svh; }
   .scene-frame--hero { --scene-ground-y: clamp(44px, 6svh, 62px); }
