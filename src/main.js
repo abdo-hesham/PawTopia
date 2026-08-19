@@ -135,6 +135,10 @@ let route = "story";
 const HERO_PAW_COUNT = 6;
 // the loop finishes its walk at 82% of the pin so RETURN can settle before the interlude
 const LOOP_WALK = .82;
+// The four stages take an even quarter each of the pinned scroll, and the last of them is
+// done before the chapter starts handing over, so RETURN is read rather than glimpsed.
+const LOOP_STAGES_END = .88;
+const loopStageAt = (progress) => Math.floor(Math.max(0, Math.min(.999, progress / LOOP_STAGES_END)) * 4);
 // chapter five arrives inside the last fifth of the paw zoom, so its reveal runs the same
 // shape as every other chapter at roughly two fifths of the scale
 const ZOOM_TIMING = scaleTiming(SCRUB, .42);
@@ -143,24 +147,28 @@ const QUOTE_TIMING = scaleTiming(SCRUB, .6);
 const TRAVEL_TIMING = scaleTiming(SCRUB, .85);
 
 // One trail walks the whole page. `points` draw it through open travel space; `tail` marks the
-// few steps that leave a chapter's bottom edge and lead into the next travel space, so the walk
+// steps that leave a chapter's bottom edge and lead into the next travel space, so the walk
 // never restarts and never prints over scene content. An entry with neither ends the run.
+//
+// The tails start around three fifths of the way down a chapter, which is where its exit
+// begins: the trail is already walking while the scene lets go, so the reader is handed from
+// one to the other rather than watching an empty screen wait for the next print.
 const routeBlueprint = [
   { id: "#scene-love" },
   { id: "#travel-01", points: [[51,.1],[57,.3],[62,.52],[59,.74],[52,.93]] },
-  { id: "#scene-choice", tail: [[50,.79],[49,.9]], stackedTail: [[50,.62],[49,.67]] },
+  { id: "#scene-choice", tail: [[51,.62],[50,.72],[50,.81],[49,.9]], stackedTail: [[50,.62],[49,.67]] },
   { id: "#travel-02", points: [[46,.1],[40,.3],[36,.52],[41,.74],[48,.93]] },
-  { id: "#scene-discovery", tail: [[52,.84],[55,.94]] },
+  { id: "#scene-discovery", tail: [[51,.66],[52,.76],[53,.85],[55,.94]] },
   { id: "#travel-03", points: [[54,.12],[62,.34],[67,.57],[62,.79],[56,.95]] },
   { id: "#scene-loop" },
   { id: "#interlude-vet", points: [[57,.02],[54,.07],[51,.12],[50,.17]] },
-  { id: "#scene-vet", tail: [[49,.84],[47,.94]] },
+  { id: "#scene-vet", tail: [[50,.66],[49,.76],[48,.85],[47,.94]] },
   { id: "#travel-05", points: [[45,.12],[40,.34],[42,.58],[48,.86]] },
-  { id: "#scene-family", tail: [[50,.83],[52,.94]] },
+  { id: "#scene-family", tail: [[49,.64],[50,.74],[51,.84],[52,.94]] },
   { id: "#travel-06", points: [[54,.1],[59,.3],[57,.54],[51,.82]] },
   // chapter seven hands the walk over already drifting right, so the footer curve can clear
   // the centred send-off copy on its way to the dog and cat
-  { id: "#scene-final", tail: [[50,.77],[53,.86],[58,.94]] },
+  { id: "#scene-final", tail: [[49,.6],[50,.7],[52,.79],[55,.87],[58,.94]] },
   // the last stretch: right of the headline, then back in to meet the pets on their hill.
   // Narrow screens skip it — the send-off is one full-width column there with no lane to
   // pass the type in, so the walk still ends inside chapter seven.
@@ -290,7 +298,10 @@ function buildGlobalPawJourney() {
   guideSvg.style.height = `${storyPage.scrollHeight}px`;
   lineContainer.append(guideSvg);
 
-  const stride = Math.max(104, Math.min(190, window.innerHeight * .16));
+  // How far apart the prints are along the path. The chapters are two and a half screens
+  // each now, so the trail runs longer through them; at the old spacing a single wheel push
+  // could land half a dozen prints at once, which reads as a rash rather than a walk.
+  const stride = Math.max(150, Math.min(255, window.innerHeight * .21));
   const segments = [];
   const placed = [];
   let stepParity = 0;
@@ -450,10 +461,20 @@ function setLoopStage(index) {
     step.classList.toggle("is-active", stepIndex === next);
     step.classList.toggle("is-done", stepIndex < next);
   });
+  // the outgoing illustration leaves before the incoming one arrives, for the same reason
+  // the headlines do: two of them at half opacity is not a crossfade, it is a double exposure
   document.querySelectorAll("[data-loop-art]").forEach((art, artIndex) => {
     const visible = artIndex === next;
     art.classList.toggle("is-active", visible);
-    gsap.to(art, { autoAlpha: visible ? 1 : 0, y: visible ? 0 : 28, scale: visible ? 1 : .94, duration: .55, ease: EASE.art, overwrite: true });
+    gsap.to(art, {
+      autoAlpha: visible ? 1 : 0,
+      y: visible ? 0 : 28,
+      scale: visible ? 1 : .94,
+      duration: visible ? .5 : .3,
+      delay: visible ? .32 : 0,
+      ease: EASE.art,
+      overwrite: true,
+    });
   });
 }
 
@@ -501,6 +522,7 @@ function buildChoiceMotion() {
   const stage = sceneStage("#scene-choice", { scrub: .8 });
   if (!stage) return;
   sceneTimelines.push(stage);
+  sceneLandings[1] = stage.settled;
   const t = STAGE;
 
   // ENTER — environment, illustrations, chapter label, headline, body, destinations
@@ -537,6 +559,7 @@ function buildDiscoveryMotion() {
   const stage = sceneStage("#scene-discovery", { scrub: .75 });
   if (!stage) return;
   sceneTimelines.push(stage);
+  sceneLandings[2] = stage.settled;
   const t = STAGE;
 
   // ENTER — the pets land first here, then the type speaks over them
@@ -579,6 +602,9 @@ function buildLoopMotion() {
   measureRail();
   ScrollTrigger.addEventListener("refreshInit", measureRail);
 
+  // a click on chapter four lands on SHOP, established, rather than on the first frame of
+  // the section's arrival
+  sceneLandings[3] = section.offsetTop + window.innerHeight * .28;
   const enter = sceneTrack("#scene-loop", { start: "top 82%", end: "top 14%", scrub: .72 });
   revealHeadline(enter, enter.scope("#loop-title .loop-headline.is-active .line-mask > span"), .06);
   revealArt(enter, enter.scope(".loop-art"), .14, { y: 24 });
@@ -601,9 +627,9 @@ function buildLoopMotion() {
     end: "bottom bottom",
     onUpdate: (self) => {
       const walk = Math.min(1, self.progress / LOOP_WALK);
-      setLoopStage(Math.floor(walk * 3.999));
+      setLoopStage(loopStageAt(self.progress));
       setLoopWalk(frame, walk);
-      handover.progress(gsap.utils.clamp(0, 1, (self.progress - LOOP_WALK) / (1 - LOOP_WALK)));
+      handover.progress(gsap.utils.clamp(0, 1, (self.progress - LOOP_STAGES_END) / (1 - LOOP_STAGES_END)));
     },
   });
 }
@@ -615,7 +641,12 @@ function buildInterludeMotion() {
   const quote = interlude.querySelector(".interlude-quote");
   const portal = interlude.querySelector(".interlude-portal");
   const journey = document.querySelector(".global-paw-journey");
-  const portalScale = stacked ? 92 : 108;
+  // The paw is a portal, not a wipe. It used to grow to a hundred times its size until it
+  // filled the screen with cream and the next chapter was simply behind it — which is a cut
+  // dressed as a zoom. It grows to about seven now, the cream bed it stands on clears while
+  // it grows, and chapter five is already there, seen through and around the paw, before the
+  // paw itself fades.
+  const portalScale = stacked ? 6.2 : 7.4;
 
   const zoom = registerTimeline(gsap.timeline({
     defaults: { ease: "none" },
@@ -640,17 +671,18 @@ function buildInterludeMotion() {
     // 33%–44% deliberate pause, then the quote leaves and the paw is alone
     .to(quoteLines, { autoAlpha: 0, y: -15, duration: .12, ease: EASE.textOut, stagger: .02 }, .44)
     .to(journey, { autoAlpha: 0, duration: .07 }, .48)
-    // the paw is a portal, not a prop leaving the frame: 1 → 2 → 4 → 8 → fills the screen
-    .to(portal, { scale: 2, duration: .08 }, .56)
-    .to(portal, { scale: 4, duration: .08 }, .64)
-    .to(portal, { scale: 8, duration: .08 }, .72)
-    .to(portal, { scale: portalScale, duration: .14, ease: EASE.env }, .8)
-    .to(portal, { color: "#f8dcc8", duration: .08 }, .78)
-    .to(portal, { color: "#fbf6ec", duration: .08 }, .86);
+    // one continuous growth rather than four steps, so the scroll drives a movement instead
+    // of a series of jumps
+    .to(portal, { scale: portalScale, duration: .34, ease: EASE.env }, .5)
+    .to(portal, { color: "#f8dcc8", duration: .12 }, .66);
 
   zoom
-    .to(frame, { autoAlpha: 0, duration: .09 }, .93)
-    .to(journey, { autoAlpha: 1, duration: .06 }, .95);
+    // the cream bed clears while the paw is still growing: chapter five arrives underneath it
+    .to(frame, { backgroundColor: "rgba(251,246,236,0)", duration: .14 }, .6)
+    // and only once that world is standing does the paw itself let go
+    .to(portal, { autoAlpha: 0, scale: portalScale * 1.35, duration: .16, ease: EASE.env }, .78)
+    .set(frame, { autoAlpha: 0 }, .95)
+    .to(journey, { autoAlpha: 1, duration: .06 }, .9);
 
   // Chapter five's own timeline takes over from three quarters of the way through the zoom,
   // so the sage world is already there when the giant paw dissolves. It is handed the scroll
@@ -659,18 +691,17 @@ function buildInterludeMotion() {
   const viewport = window.innerHeight;
   const zoomStart = interlude.offsetTop - viewport * .35;
   const zoomEnd = interlude.offsetTop + interlude.offsetHeight - viewport;
-  return zoomStart + (zoomEnd - zoomStart) * .76;
+  return zoomStart + (zoomEnd - zoomStart) * .58;
 }
 
 function buildVetMotion(handoverPx) {
-  const stage = sceneStage("#scene-vet", { start: handoverPx, tail: .16, scrub: .8 });
+  const stage = sceneStage("#scene-vet", { start: handoverPx, scrub: .8 });
   if (!stage) return;
   sceneTimelines.push(stage);
-  // Chapter five is the one chapter whose timeline starts before its own section — the paw
-  // portal hands it over mid-interlude. Landing a click on the section top therefore lands
-  // it halfway through the entrance, with the headline still under its mask. The chapter
-  // owns a landing of its own: far enough in that the scene is established.
-  sceneLandings[4] = handoverPx + window.innerHeight * .46;
+  // Chapter five's timeline starts before its own section — the paw portal hands it over
+  // mid-interlude — so like every other chapter it lands where its entrance has finished
+  // rather than where its section begins.
+  sceneLandings[4] = stage.settled;
   // Chapter five arrives under the dissolving paw rather than from below, so its entrance
   // runs at roughly two thirds speed and lands inside the first half-screen of scroll: by
   // the time the section is established, the whole chapter — services included — is there.
@@ -711,6 +742,7 @@ function buildFamilyMotion() {
   const stage = sceneStage("#scene-family", { lead: .88, scrub: .85 });
   if (!stage) return;
   sceneTimelines.push(stage);
+  sceneLandings[5] = stage.settled;
   const t = STAGE;
 
   // ENTER — the emotional pause: the world settles, then two phrases with a beat between
@@ -743,9 +775,10 @@ function buildFamilyMotion() {
 }
 
 function buildFinalMotion() {
-  const stage = sceneStage("#scene-final", { lead: .94, tail: .06, scrub: .75 });
+  const stage = sceneStage("#scene-final", { lead: .94, scrub: .75 });
   if (!stage) return;
   sceneTimelines.push(stage);
+  sceneLandings[6] = stage.settled;
   const t = STAGE;
 
   // ENTER — the world opens back up, familiar from chapter one, and the walk arrives
@@ -860,7 +893,7 @@ function buildReducedMotion() {
     end: "bottom bottom",
     onUpdate: (self) => {
       const walk = Math.min(1, self.progress / LOOP_WALK);
-      setLoopStage(Math.floor(walk * 3.999));
+      setLoopStage(loopStageAt(self.progress));
       setLoopWalk(loopFrame, walk);
     },
   });

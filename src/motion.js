@@ -111,7 +111,12 @@ export const ENTER_AT = { env: 0, art: .1, eyebrow: .22, headline: .3, body: .46
 const ENTER_END = .82;
 const EXIT_WINDOW = .8;
 
-export function sceneStage(target, { lead = 1, tail = .05, scrub = .8, start } = {}) {
+// `tail` is where the timeline stops, measured up from the bottom of the section. A chapter
+// on a sticky stage stops sticking exactly one viewport before its section ends, and after
+// that the page carries the stage off the top edge — so the exit has to be finished by then.
+// One viewport is therefore the default, not a sliver: it lands the last frame of the exit on
+// the last frame the stage holds still for.
+export function sceneStage(target, { lead = 1, tail = 1, scrub = .8, start } = {}) {
   const section = typeof target === "string" ? document.querySelector(target) : target;
   if (!section) return null;
   const viewport = window.innerHeight;
@@ -141,6 +146,10 @@ export function sceneStage(target, { lead = 1, tail = .05, scrub = .8, start } =
   const squeeze = Math.min(1, room / EXIT_WINDOW);
   timeline.holdFrom = ENTER_END;
   timeline.holdTo = exitStart;
+  // Where the chapter is standing still with everything on screen. A click that lands on the
+  // top of the section arrives before the scene does — on a sticky stage that top edge is the
+  // first frame of the entrance, not the composition.
+  timeline.settled = beginPx + Math.min(ENTER_END + .2, (ENTER_END + exitStart) / 2) * viewport;
   timeline.exitAt = (offset = 0) => exitStart + offset * squeeze;
   timeline.squeeze = squeeze;
   return registerTimeline(timeline);

@@ -178,12 +178,17 @@ em { color: var(--coral); font-weight: 400; }
 .button:disabled { cursor: default; opacity: .42; transform: none; }
 
 .story-page { position: relative; isolation: isolate; background: var(--cream); }
-.story-scene { position: relative; min-height: 112svh; overflow: clip; }
+.story-scene { position: relative; min-height: 230svh; overflow: clip; }
 /* The compositor hint is only worth paying for while a chapter is on screen. Held for the
    whole page it kept ~15 layers and their textures alive from first paint to last. */
 .story-scene.is-live .scene-character, .story-scene.is-live .vet-character, .story-scene.is-live .family-character, .story-scene.is-live .final-pet, .story-scene.is-live .loop-illustration, .story-scene.is-live .discovery-world img, .story-scene.is-live .destination img, .story-scene.is-live .hero-atmosphere, .story-scene.is-live .hero-environment, .story-scene.is-live .hero-ground, .story-scene.is-live .choice-environment, .story-scene.is-live .vet-branch, .story-scene.is-live .family-branch { will-change: transform, opacity; }
 .interlude-portal.is-zooming { will-change: transform; }
-.scene-frame { position: relative; min-height: 100svh; overflow: hidden; isolation: isolate; }
+/* Every chapter plays on a stage that holds still in the viewport while its section
+   scrolls past. Without it, a scene's exit is a race it cannot win — the page carries the
+   headline off the top edge while the timeline is still fading it, and what the reader sees
+   is a heading cut in half rather than a scene leaving. With it, the composition is where it
+   was put and every pixel of movement belongs to a timeline. */
+.scene-frame { position: sticky; top: 0; height: 100svh; min-height: 100svh; overflow: hidden; isolation: isolate; }
 .scene-frame--sticky { position: sticky; top: 0; }
 .story-scene--hero { min-height: 138svh; }
 .scene-frame--hero { --scene-ground-y: clamp(52px, 7svh, 76px); }
@@ -303,7 +308,7 @@ h3 { font-size: var(--type-sub); }
 body.is-navigating .journey-paw, body.is-navigating .trail-line { transition-duration: .08s; }
 body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.is-navigating .loop-line, body.is-navigating .loop-steps li, body.is-navigating .loop-steps b { transition-duration: .16s; }
 
-.story-scene--choice { min-height: 118svh; }
+.story-scene--choice { min-height: 240svh; }
 .scene-frame--choice { display: flex; flex-direction: column; align-items: center; padding: calc(var(--header-height) + clamp(16px, 3svh, 40px)) clamp(22px, 4vw, 64px) clamp(46px, 8svh, 92px); }
 .choice-environment { position: absolute; z-index: 1; bottom: 0; width: clamp(320px, 35vw, 560px); aspect-ratio: 4 / 3; pointer-events: none; }
 .choice-environment img { width: 100%; height: 100%; object-fit: contain; transform: translateY(var(--asset-baseline-offset)); }
@@ -359,7 +364,7 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
   .destination-copy b { margin-top: clamp(12px, 2.2svh, 22px); }
 }
 
-.story-scene--discovery { min-height: 122svh; background: var(--cream); }
+.story-scene--discovery { min-height: 240svh; background: var(--cream); }
 .scene-copy--left { top: 24%; left: clamp(24px, 11vw, 200px); width: min(575px, 36%); }
 #discovery-title em { font-style: italic; letter-spacing: -.02em; }
 .scene-copy--left .scene-intro { max-width: 440px; margin: clamp(26px, 4.6svh, 46px) 0 clamp(32px, 5.4svh, 56px); }
@@ -391,13 +396,16 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .scene-copy--loop h2 { display: grid; font-size: var(--type-title); line-height: .92; }
 /* offset halves: the outgoing line is gone before the incoming one starts, so the two
    never sit at half opacity in the same grid cell */
-.loop-headline { grid-area: 1 / 1; opacity: 0; transition: opacity .28s ease-out; }
-.loop-headline.is-active { transition: opacity .34s ease-out .12s; }
+/* One stage of the loop is readable at a time. The incoming line waits for the outgoing one
+   to be gone — its delay is longer than the other's whole fade — so the four headlines never
+   sit on top of each other, which is what made them unreadable. */
+.loop-headline { grid-area: 1 / 1; opacity: 0; transition: opacity .22s ease-out; }
+.loop-headline.is-active { transition: opacity .3s ease-out .24s; }
 .loop-headline.is-active { opacity: 1; }
 #loop-title em { font-style: italic; letter-spacing: -.02em; }
 .scene-copy--loop .scene-intro { display: grid; max-width: 390px; margin: clamp(26px, 4.4svh, 44px) 0 0; font-family: var(--serif); font-size: var(--type-lead); line-height: 1.5; letter-spacing: 0; }
-.loop-line { grid-area: 1 / 1; opacity: 0; transition: opacity .28s ease-out; }
-.loop-line.is-active { transition: opacity .34s ease-out .12s; }
+.loop-line { grid-area: 1 / 1; opacity: 0; transition: opacity .22s ease-out; }
+.loop-line.is-active { transition: opacity .3s ease-out .24s; }
 .loop-line.is-active { opacity: 1; }
 
 .loop-art { position: absolute; z-index: 6; bottom: 6.5%; left: 35%; width: 30%; height: 46%; }
@@ -438,7 +446,11 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .loop-paw { position: absolute; top: 0; left: 50%; width: 23px; height: 23px; margin: 0; color: var(--coral); transform: translate(-50%, -50%) translateY(calc(var(--loop-walk, 0) * var(--loop-rail-height, 0px))) rotate(180deg); }
 .loop-frame.is-complete .loop-rail { background: rgba(242,113,82,.24); }
 
-.story-interlude { position: relative; z-index: 5; min-height: 125svh; }
+/* The loop's stage stops sticking one screen before its section ends, and everything on it
+   has already left by then — which used to leave a full screen of cream with nothing moving
+   in it before the quote arrived. The interlude starts inside that screen instead, so the
+   paw the reader is following never stops walking. */
+.story-interlude { position: relative; z-index: 5; min-height: 240svh; margin-top: -100svh; }
 .interlude-frame { position: sticky; top: 0; height: 100svh; overflow: hidden; background: var(--cream); }
 .interlude-quote { position: absolute; z-index: 2; top: 33%; right: 0; left: 0; width: min(760px, 88vw); margin: 0 auto; text-align: center; }
 .interlude-quote p { margin: 0; font-family: var(--serif); font-size: var(--type-quote); font-weight: 400; line-height: 1.22; letter-spacing: -.022em; text-wrap: balance; hanging-punctuation: first last; }
@@ -452,7 +464,7 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
   50% { transform: scale(1.03); }
 }
 
-.story-scene--vet { min-height: 132svh; margin-top: -100svh; }
+.story-scene--vet { min-height: 250svh; margin-top: -100svh; }
 .vet-blob { position: absolute; z-index: 0; bottom: 8%; left: 1%; width: 54%; height: 72%; pointer-events: none; }
 .vet-blob img { width: 100%; height: 100%; object-fit: contain; }
 /* the two sprigs sit between the field and the vet: one tucked at her back, one behind the
@@ -477,7 +489,7 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .service-list i { font-size: clamp(15px, 1.15vw, 20px); font-style: normal; opacity: .5; transition: transform .4s cubic-bezier(.16,1,.3,1), opacity .3s ease; }
 @media (hover: hover) and (pointer: fine) { .service-list button:hover i { transform: translateX(7px); opacity: 1; } }
 
-.story-scene--family { min-height: 130svh; }
+.story-scene--family { min-height: 270svh; }
 .family-kicker { position: absolute; z-index: 20; top: 24.2%; right: 0; left: 0; margin: 0; text-align: center; }
 .family-kicker span { color: var(--coral); }
 .family-copy { top: 29.3%; left: 9.8%; width: min(900px, 52%); text-align: left; transform: none; }
@@ -502,7 +514,7 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .family-heart::before { content: ""; position: absolute; inset: 8%; border-radius: 50%; background: var(--family-field-tone, #eaeadb); }
 .family-heart svg { position: relative; display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 
-.story-scene--final { min-height: 172svh; }
+.story-scene--final { min-height: 250svh; }
 .final-atmosphere { position: absolute; z-index: 1; width: clamp(96px, 8vw, 140px); pointer-events: none; }
 .final-atmosphere img { width: 100%; height: auto; }
 .final-atmosphere--left { top: 25.5%; left: 12.6%; }
@@ -721,7 +733,7 @@ nav.footer-social a:active { translate: 0; scale: .93; }
      opens it, so hiding it here left the cart unreachable on a phone. */
   .header-actions .header-link:not(.header-cart), .header-actions .button { display: none; }
   .header-cart { min-width: 42px; height: 40px; justify-content: flex-end; }
-  .story-scene { min-height: 104svh; }
+  .story-scene { min-height: 190svh; }
   .story-scene--hero { min-height: 126svh; }
   .scene-frame--hero { --scene-ground-y: clamp(44px, 6svh, 62px); }
   .hero-atmosphere--left { top: clamp(108px, 13svh, 136px); left: 26px; }
@@ -760,7 +772,7 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .destination-copy small { max-width: 245px; }
   .destination-copy b { margin-top: clamp(12px, 2.2svh, 22px); font-size: 11px; }
   .choice-fork { width: clamp(110px, 14vw, 190px); margin-bottom: clamp(24px, 5svh, 52px); }
-  .story-scene--discovery { min-height: 100svh; }
+  .story-scene--discovery { min-height: 190svh; }
   .scene-copy--left, .scene-copy--right { top: 15%; right: auto; left: 21px; width: calc(100% - 42px); }
   .scene-copy--left .scene-intro { max-width: 400px; margin: clamp(16px, 2.6svh, 26px) 0 clamp(20px, 3.4svh, 32px); }
   /* narrow screens have no lane beside the copy, so chapter three stops overlapping and
@@ -792,10 +804,10 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .loop-steps li { padding: clamp(9px, 1.5svh, 14px) 0; }
   .loop-steps strong { font-size: clamp(19px, 5vw, 24px); }
   .loop-steps small { display: none; }
-  .story-interlude { min-height: 118svh; }
+  .story-interlude { min-height: 200svh; }
   .interlude-quote { top: 31%; width: calc(100% - 44px); }
   .interlude-portal { top: 56%; width: 52px; height: 52px; margin: -33.6px 0 0 -19.9px; }
-  .story-scene--vet { min-height: 128svh; }
+  .story-scene--vet { min-height: 200svh; }
   /* measured on a 390x844 screen: the body sat at -8px and the service rows at 62px, both
      behind the 72px header, with the vet overlapping the copy by 114px */
   .scene-copy--right h2 { font-size: clamp(38px, 10.5vw, 56px); }
@@ -816,7 +828,7 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .service-list { width: 100%; margin-top: clamp(20px, 3svh, 30px); }
   .service-list button { padding-block: clamp(7px, 1.1svh, 12px); }
   .service-list strong { font-size: clamp(17px, 4.6vw, 22px); }
-  .story-scene--family { min-height: 122svh; }
+  .story-scene--family { min-height: 210svh; }
   .family-kicker { top: 14%; }
   .family-copy { top: 20%; left: 20px; width: calc(100% - 40px); }
   .family-copy h2 { font-size: clamp(44px, 11.5vw, 74px); }
@@ -826,7 +838,7 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .family-branch { bottom: 6%; left: 2%; width: clamp(52px, 15vw, 86px); }
   .family-sweep { bottom: 2%; left: -4%; width: 108%; }
   .family-art { right: 0; bottom: 6%; left: 0; width: min(360px, 88%); margin-inline: auto; }
-  .story-scene--final { min-height: 112svh; }
+  .story-scene--final { min-height: 200svh; }
   .final-environment { width: clamp(280px, 74vw, 440px); }
   .final-environment--left { left: -16vw; }
   .final-environment--right { right: -16vw; }
@@ -867,8 +879,10 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .hero-environment--right { right: -14vw; }
   .hero-ground { width: 148vw; }
   .scene-character--hero { width: clamp(205px, min(58vw, 32svh), 250px); }
-  .story-scene--choice { min-height: auto; }
-  .scene-frame--choice { padding-inline: 18px; padding-bottom: clamp(48px, 9svh, 96px); }
+  /* The fork stands taller than a small screen, so its stage grows to hold it rather than
+     clipping the second card — and the section keeps a budget to play the scene in. */
+  .story-scene--choice { min-height: 190svh; }
+  .scene-frame--choice { height: auto; padding-inline: 18px; padding-bottom: clamp(48px, 9svh, 96px); }
   .choice-environment { width: clamp(240px, 62vw, 340px); }
   .choice-environment--left { left: -7vw; }
   .choice-environment--right { right: -7vw; }
@@ -908,10 +922,10 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .journey-paw.is-past, .journey-paw.is-current { transform: translate(-50%, -50%) rotate(var(--paw-rotate)) scale(1) !important; }
   .loop-illustration, .loop-steps li > b, .loop-steps li > .loop-step-copy { transform: none !important; }
   .site-header, .scene-progress { opacity: 1 !important; transform: none !important; }
-  .scene-frame--sticky, .loop-frame, .interlude-frame { position: relative; }
-  .story-scene--hero, .story-scene--loop, .story-scene, .story-scene--family { min-height: 100svh; }
+  .scene-frame, .scene-frame--sticky, .loop-frame, .interlude-frame { position: relative; height: auto; }
+  .story-scene--hero, .story-scene--loop, .story-scene, .story-scene--family, .story-scene--choice, .story-scene--discovery, .story-scene--vet, .story-scene--final { min-height: 100svh; }
   .family-note { opacity: 1; transform: none; }
-  .story-interlude { min-height: auto; }
+  .story-interlude { min-height: auto; margin-top: 0; }
   .interlude-frame { height: 88svh; }
   .story-scene--vet { margin-top: 0; }
   .journey-space, .journey-space--first, .journey-space--long, .journey-space--short, .journey-space--mid, .journey-space--final { min-height: 34vh; }
