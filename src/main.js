@@ -1750,6 +1750,8 @@ function startRoute(next, { push, immediate }) {
       else { checkoutModule.resetCheckout(); checkoutModule.renderCheckout(); }
     }
     if (next !== "shop") shopModule?.resetShopMotion();
+    // an order that has been read is finished with: leaving takes its confirmation with it
+    if (next !== "checkout") checkoutModule?.resetCheckout();
 
     route = next;
     // a hidden view measures as zero, so every trigger is re-measured after the swap
@@ -1850,10 +1852,14 @@ document.querySelectorAll(".js-go-shop").forEach((control) => control.addEventLi
   setRoute("shop");
 }));
 
-document.querySelectorAll(".js-go-story").forEach((control) => control.addEventListener("click", (event) => {
+// Delegated, because the order confirmation is built when an order is placed rather than
+// written into the page — a listener bound at boot would never reach its button.
+document.addEventListener("click", (event) => {
+  const control = event.target.closest(".js-go-story");
+  if (!control) return;
   event.preventDefault();
   setRoute("story");
-}));
+});
 
 document.querySelectorAll(".js-go-checkout").forEach((control) => control.addEventListener("click", (event) => {
   event.preventDefault();

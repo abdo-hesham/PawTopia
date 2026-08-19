@@ -204,6 +204,10 @@ body.is-shop .global-paw-journey { display: none; }
 .checkout-form .field-label { display: block; margin: 0 0 clamp(10px, 1.4svh, 16px); font-size: 11px; letter-spacing: .11em; text-transform: uppercase; opacity: .78; }
 .checkout-form .field-label input { display: block; width: 100%; margin-top: 6px; padding: 10px 0; border: 0; border-bottom: 1px solid rgba(18,58,86,.28); outline: 0; color: inherit; background: transparent; font-size: 16px; letter-spacing: 0; text-transform: none; transition: border-color .3s ease; }
 .checkout-form .field-label input:focus { border-bottom-color: var(--coral); }
+/* A missed field is told about where it happened, in the shop's own coral and at the size of
+   the label above it — a line of help rather than an alarm. */
+.checkout-form .field-label input[aria-invalid="true"] { border-bottom-color: var(--coral); }
+.checkout-form .field-error { display: block; margin-top: 6px; color: var(--coral-deep); font-size: 11.5px; letter-spacing: .02em; text-transform: none; opacity: .95; }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(12px, 1.6vw, 24px); }
 
 .choice-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(10px, 1.2vw, 16px); }
