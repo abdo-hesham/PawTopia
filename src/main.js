@@ -613,7 +613,17 @@ function buildLoopMotion() {
   revealHeadline(enter, enter.scope("#loop-title .loop-headline.is-active .line-mask > span"), .06);
   revealArt(enter, enter.scope(".loop-art"), .14, { y: 24 });
   revealBody(enter, enter.scope(".scene-intro"), .28);
-  revealRows(enter, enter.scope(".loop-steps li"), .32, { y: 18 });
+  if (stacked) {
+    // On a phone the four stages sit at the foot of the stage, and the stage is still sliding
+    // up while the rest of the chapter is being written — so the list was animating below the
+    // fold and had already finished by the time it arrived on screen. The reader met a
+    // headline, an illustration and half a screen of nothing. It is written once the stage is
+    // standing still instead, in view, and it is still there for the whole walk.
+    const rows = sceneTrack("#scene-loop", { start: "top top", end: "top -26%", scrub: .6 });
+    revealRows(rows, rows.scope(".loop-steps li"), 0, { y: 18 });
+  } else {
+    revealRows(enter, enter.scope(".loop-steps li"), .32, { y: 18 });
+  }
   enter.fromTo(enter.scope(".loop-rail"), { autoAlpha: 0 }, { autoAlpha: 1, duration: SCRUB.env, ease: EASE.env }, .42);
 
   // the loop quiets itself down for the interlude instead of just scrolling away
@@ -949,14 +959,18 @@ function setupSmoothScroll() {
     lerp: 0,
     duration: 1.45,
     smoothWheel: true,
-    syncTouch: !modestDevice,
-    syncTouchLerp: .06,
-    touchInertiaMultiplier: 28,
+    // Touch is smoothed everywhere now. A phone that fell back to the browser's own scrolling
+    // read the pinned chapters as a series of jumps, because the page arrived at a new
+    // position between two frames rather than travelling to it. A modest device keeps the
+    // smoothing but is given a lighter glide to carry.
+    syncTouch: true,
+    syncTouchLerp: modestDevice ? .12 : .09,
+    touchInertiaMultiplier: modestDevice ? 20 : 28,
     // .72 made one notch cover 72px: a reader crossing the whole story spent about 155 of
     // them. The weight readers feel is the coasting, not the distance per notch, so the
     // notch grew and the duration and easing below were left alone.
     wheelMultiplier: .9,
-    touchMultiplier: .85,
+    touchMultiplier: 1,
     easing: SCROLL_EASE,
   });
   lenis.on("scroll", () => {
