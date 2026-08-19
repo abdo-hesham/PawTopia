@@ -166,6 +166,21 @@ export function maskLines(heading) {
       return mask;
     });
   if (masks.length) heading.replaceChildren(...masks);
+  spaceLines(heading);
+}
+
+// Masked lines are separate block-level spans with nothing between them, so a screen reader
+// runs them together: "Care," + "with" + "expertise." is announced as "Care,withexpertise."
+// — and since every section is labelled by its heading, that mangled string is also the
+// section's accessible name. A whitespace text node between the lines restores the spoken
+// sentence and costs nothing on screen, because whitespace between blocks does not render.
+export function spaceLines(root = document) {
+  root.querySelectorAll(".line-mask, .choice-line").forEach((line) => {
+    if (line === line.parentNode?.lastElementChild) return;
+    const next = line.nextSibling;
+    if (next && next.nodeType === Node.TEXT_NODE && /\s/.test(next.textContent)) return;
+    line.after(document.createTextNode(" "));
+  });
 }
 
 // Splits an already-masked line into words so it can rise as a cascade instead of a block.

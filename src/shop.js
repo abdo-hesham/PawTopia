@@ -182,7 +182,7 @@ function buildProductDialog() {
         <button class="button button--outline js-close-product" type="button"><span>&#8592;</span> Cancel</button>
         <button class="button button--coral js-product-add" type="button">Add to bag <span>&#8594;</span></button>
       </div>
-      <p class="product-dialog__note">Free delivery over EGP 800 · Cash or card on delivery · 14-day returns</p>
+      <p class="product-dialog__note">Free delivery over EGP 900 · Cash or card on delivery · 14-day returns</p>
     </div>`;
   document.body.append(productDialog);
 

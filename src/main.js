@@ -50,6 +50,7 @@ import {
   sceneStage,
   holdDepth,
   maskLines,
+  spaceLines,
   revealEyebrow,
   revealHeadline,
   revealWords,
@@ -112,6 +113,9 @@ let routeFrame = 0;
 let routeGuideVisible = false;
 let sceneMotionBuilt = false;
 let chapterBands = [];
+// where a chapter click should come to rest, for the chapters whose motion does not begin
+// at their own top edge; empty means "the section top"
+let sceneLandings = [];
 let chromeBand = null;
 let chromeVisible = null;
 let cinematicChrome = false;
@@ -391,6 +395,11 @@ function scheduleRouteUpdate() {
   if (routeFrame) return;
   routeFrame = requestAnimationFrame(() => {
     routeFrame = 0;
+    // The chapter timelines are built when the opening finishes, because building them
+    // while it plays would overwrite the hero's starting state. A reader who scrolls before
+    // that — or a tab that loaded in the background, where the opening does not advance at
+    // all — would meet a story with no motion, so leaving chapter one ends the opening now.
+    if (heroIntro && window.scrollY > window.innerHeight * .3) finishHeroIntro();
     ScrollTrigger.update();
     updatePawJourney();
     resolveChapter();
@@ -429,7 +438,14 @@ function setLoopStage(index) {
   const next = Math.max(0, Math.min(3, index));
   if (next === activeLoopStage) return;
   activeLoopStage = next;
-  document.querySelectorAll("[data-loop-copy]").forEach((copy) => copy.classList.toggle("is-active", Number(copy.dataset.loopCopy) === next));
+  // only one of the four is on screen at a time, so only one is exposed: otherwise the
+  // section's accessible name is all four headlines run together
+  document.querySelectorAll("[data-loop-copy]").forEach((copy) => {
+    const live = Number(copy.dataset.loopCopy) === next;
+    copy.classList.toggle("is-active", live);
+    if (live) copy.removeAttribute("aria-hidden");
+    else copy.setAttribute("aria-hidden", "true");
+  });
   document.querySelectorAll("[data-loop-step]").forEach((step, stepIndex) => {
     step.classList.toggle("is-active", stepIndex === next);
     step.classList.toggle("is-done", stepIndex < next);
@@ -650,6 +666,11 @@ function buildVetMotion(handoverPx) {
   const stage = sceneStage("#scene-vet", { start: handoverPx, tail: .16, scrub: .8 });
   if (!stage) return;
   sceneTimelines.push(stage);
+  // Chapter five is the one chapter whose timeline starts before its own section — the paw
+  // portal hands it over mid-interlude. Landing a click on the section top therefore lands
+  // it halfway through the entrance, with the headline still under its mask. The chapter
+  // owns a landing of its own: far enough in that the scene is established.
+  sceneLandings[4] = handoverPx + window.innerHeight * .46;
   // Chapter five arrives under the dissolving paw rather than from below, so its entrance
   // runs at roughly two thirds speed and lands inside the first half-screen of scroll: by
   // the time the section is established, the whole chapter — services included — is there.
@@ -980,7 +1001,7 @@ function scrollToScene(index) {
   if (!target) return;
   closePanels({ restoreFocus: false });
   focusScene(target);
-  const destination = target.getBoundingClientRect().top + window.scrollY;
+  const destination = sceneLandings[clamped] ?? target.getBoundingClientRect().top + window.scrollY;
   const distance = Math.abs(destination - window.scrollY);
   const screens = distance / window.innerHeight;
   // paced by ground covered rather than a flat number: roughly a second per screen, so the
@@ -1297,12 +1318,35 @@ function chooseDate(date) {
   calendarToggle.focus();
 }
 
+// The three quick chips are the next three days, counted from whenever the page is open.
+// Typed-in dates would be a lie the moment they passed — and a clinic that appears to have
+// the same three days free forever is not a clinic anybody believes.
+const quickDateLabels = document.querySelectorAll(".date-options label:not(.date-option--pick)");
+
+function fillQuickDates() {
+  const today = new Date();
+  quickDateLabels.forEach((label, index) => {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + index + 1);
+    const [weekday, day] = shortDate(date).split(" ");
+    const input = label.querySelector("input");
+    const face = label.querySelector("span");
+    input.value = formatDate(date);
+    face.textContent = `${weekday} `;
+    const number = document.createElement("b");
+    number.textContent = day;
+    face.append(number);
+  });
+}
+
+fillQuickDates();
+
 calendarToggle?.addEventListener("click", () => setCalendarOpen(calendarToggle.getAttribute("aria-expanded") !== "true"));
 // the fourth chip is the calendar: picking it with no date yet opens the month
 customDateInput?.addEventListener("click", () => { if (!customDateInput.value) setCalendarOpen(true); });
 
 function openVetDialog() {
   closePanels();
+  fillQuickDates();
   vetForm.hidden = false;
   vetSuccess.hidden = true;
   // a fresh booking starts on the quick chips, with the month put away
@@ -1373,6 +1417,15 @@ function prepareHeroIntro() {
   routePaws.slice(0, HERO_PAW_COUNT).forEach((paw) => paw.classList.remove("is-past", "is-current"));
   routeLines.forEach((segment) => segment.line.classList.remove("is-guide", "is-past"));
   heroIntro = intro;
+}
+
+// the opening cut short: its last frame is rendered at once, which is also what hands the
+// chapter timelines their cue to build
+function finishHeroIntro() {
+  const intro = heroIntro;
+  heroIntro = null;
+  intro.progress(1);
+  buildSceneMotion();
 }
 
 // a refresh halfway down the page skips the opening entirely: chapter one is behind the
@@ -1497,6 +1550,7 @@ function refreshLayout({ remeasureMotion = false } = {}) {
   if (remeasureMotion && sceneMotionBuilt) {
     killSceneMotion();
     sceneTimelines = [];
+    sceneLandings = [];
     sceneMotionBuilt = false;
     buildSceneMotion();
   }
@@ -1763,6 +1817,12 @@ function initialize() {
   maskLines(document.querySelector("#love-title"));
   maskLines(document.querySelector(".footer-headline"));
   maskLines(document.querySelector(".interlude-quote p"));
+  // the headings whose lines are written as masks in the markup get the same treatment, so
+  // every heading on the page is still one readable sentence to a screen reader
+  spaceLines();
+  // the loop starts on its first stage, so the other three headlines are hidden from the
+  // screen reader before the section is ever reached
+  setLoopStage(0);
   buildGlobalPawJourney();
   const deepLoad = window.scrollY > window.innerHeight * .5;
 
