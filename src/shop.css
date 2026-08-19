@@ -93,6 +93,9 @@
 .star { display: block; width: 11px; height: 11px; background: rgba(18,58,86,.2); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
 .star.is-full { background: #e8a33d; }
 .star.is-half { background: linear-gradient(90deg, #e8a33d 50%, rgba(18,58,86,.2) 50%); }
+/* the grid says the score in figures; the star marks belong to the product view, where
+   there is room to read them */
+.product-score { font-size: 12px; font-weight: 500; letter-spacing: .01em; }
 .product-rating small { font-size: 11px; opacity: .78; }
 .product-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: clamp(12px, 1.6svh, 18px); }
 .product-foot b { font-size: clamp(14px, 1.1vw, 17px); font-weight: 500; }
