@@ -137,7 +137,7 @@ const HERO_PAW_COUNT = 6;
 const LOOP_WALK = .82;
 // The four stages take an even quarter each of the pinned scroll, and the last of them is
 // done before the chapter starts handing over, so RETURN is read rather than glimpsed.
-const LOOP_STAGES_END = .8;
+const LOOP_STAGES_END = .84;
 const loopStageAt = (progress) => Math.floor(Math.max(0, Math.min(.999, progress / LOOP_STAGES_END)) * 4);
 // chapter five arrives inside the last fifth of the paw zoom, so its reveal runs the same
 // shape as every other chapter at roughly two fifths of the scale
@@ -654,7 +654,10 @@ function buildInterludeMotion() {
     defaults: { ease: "none" },
     scrollTrigger: {
       trigger: interlude,
-      start: "top 35%",
+      // The interlude begins where chapter four ends, not before it. Starting a third of a
+      // screen early meant the quote arrived on top of RETURN, which is also why the fourth
+      // stage never felt like it was reached.
+      start: "top top",
       end: "bottom bottom",
       scrub: .7,
       onUpdate: (self) => {
@@ -690,7 +693,9 @@ function buildInterludeMotion() {
   // position rather than the section, because the section starts a screen higher than the
   // moment the audience should first see it.
   const viewport = window.innerHeight;
-  const zoomStart = interlude.offsetTop - viewport * .35;
+  // the same point the trigger above starts at, so the handover is measured from where the
+  // zoom actually begins
+  const zoomStart = interlude.offsetTop;
   const zoomEnd = interlude.offsetTop + interlude.offsetHeight - viewport;
   return zoomStart + (zoomEnd - zoomStart) * .8;
 }
@@ -739,6 +744,11 @@ function buildVetMotion(handoverPx) {
   fadeOut(stage, stage.scope(".vet-character"), stage.exitAt(.44), { from: { yPercent: 0 }, to: { yPercent: -2 }, duration: t.art, ease: EASE.env });
   fadeOut(stage, stage.scope(".vet-branch"), stage.exitAt(.48), { duration: t.art, ease: EASE.env, stagger: t.rows });
   fadeOut(stage, stage.scope(".vet-blob"), stage.exitAt(.52), { duration: t.env, ease: EASE.env });
+  // The service list draws its own top rule and the frame draws a hairline under the scene.
+  // Neither belongs to an element the exit was fading, so both were left hanging in an empty
+  // chapter. The list goes with its rows, and the frame — which owns the hairline — goes last.
+  fadeOut(stage, stage.scope(".service-list"), stage.exitAt(.14), { duration: t.body, ease: EASE.env });
+  fadeOut(stage, stage.scope(".scene-frame--vet"), stage.exitAt(.58), { duration: t.env, ease: EASE.env });
 }
 
 function buildFamilyMotion() {

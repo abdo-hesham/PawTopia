@@ -784,7 +784,7 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .scene-frame--discovery { display: flex; flex-direction: column; gap: clamp(10px, 1.6svh, 22px); padding: calc(var(--header-height) + clamp(10px, 2svh, 24px)) 18px clamp(14px, 2svh, 26px); }
   .scene-frame--discovery .scene-copy--left { position: static; width: 100%; }
   /* relative, not static: the grass belongs to this group and has to stay under the pets */
-  .discovery-world { position: relative; justify-content: center; width: fit-content; margin: auto auto 0; gap: 0; }
+  .discovery-world { position: relative; inset: auto; justify-content: center; width: fit-content; margin: auto auto 0; gap: 0; }
   /* The grass belongs to the pets standing on it here, so it never drifts on its own. The
      scene timeline writes an inline transform, which only !important can hold off; the
      translateY on its img is untouched, so the artwork keeps sitting on the baseline. */
@@ -885,20 +885,41 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .scene-character--hero { width: clamp(205px, min(58vw, 32svh), 250px); }
   /* The fork stands taller than a small screen, so its stage grows to hold it rather than
      clipping the second card — and the section keeps a budget to play the scene in. */
-  .story-scene--choice { min-height: 190svh; }
+  .story-scene--choice { min-height: 240svh; }
   .scene-frame--choice { height: auto; padding-inline: 18px; padding-bottom: clamp(48px, 9svh, 96px); }
   .choice-environment { width: clamp(240px, 62vw, 340px); }
   .choice-environment--left { left: -7vw; }
   .choice-environment--right { right: -7vw; }
   .scene-heading--center { margin-bottom: 0; }
   .scene-heading--center h2 { font-size: clamp(46px, 13vw, 72px); }
-  .choice-paths { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: clamp(18px, 3.4svh, 34px); width: 100%; padding-top: clamp(24px, 5svh, 46px); }
+  .choice-paths { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: clamp(10px, 2.4svh, 30px); width: 100%; padding-top: clamp(12px, 3svh, 40px); }
   .destination { width: min(340px, 100%); }
-  .destination-art { height: clamp(134px, 18.5svh, 205px); }
-  .destination--shop .destination-art { height: clamp(121px, 16.5svh, 184px); }
-  .destination-copy strong { font-size: clamp(32px, 8.8vw, 43px); }
-  .destination-copy small { max-width: 275px; }
-  .choice-fork { grid-column: 1; align-self: center; width: clamp(140px, 44vw, 220px); margin: 0; }
+  .destination-art { height: clamp(86px, 16svh, 205px); }
+  .destination--shop .destination-art { height: clamp(78px, 14svh, 184px); }
+  .destination-copy { margin-top: clamp(6px, 1.4svh, 22px); }
+  .destination-copy strong { font-size: clamp(27px, 7.6vw, 43px); }
+  .destination-copy small { max-width: 275px; margin-top: clamp(4px, .9svh, 12px); }
+  .destination-copy b { margin-top: clamp(8px, 1.6svh, 22px); }
+  .choice-fork { grid-column: 1; align-self: center; width: clamp(96px, 34vw, 200px); margin: 0; }
+}
+
+/* A phone in portrait is short as well as narrow, and chapter two stacks: heading, card,
+   fork, card. At sizes written for a taller screen that column stood 850px inside a 690px
+   stage, so the second card sat below the fold where the reader could never reach it, and
+   the chapter started leaving while they were still looking for it. Here the composition is
+   measured against the screen it actually has. */
+@media (max-width: 760px) and (max-height: 820px) {
+  .scene-frame--choice { padding-top: calc(var(--header-height) + clamp(6px, 1.6svh, 22px)); padding-bottom: clamp(16px, 3svh, 40px); }
+  .scene-heading--center h2 { font-size: clamp(32px, 9.6vw, 52px); }
+  .scene-heading--center > p:last-child { margin-top: clamp(10px, 2svh, 26px); font-size: 13px; }
+  .choice-paths { gap: clamp(6px, 1.4svh, 20px); padding-top: clamp(8px, 1.8svh, 26px); }
+  .destination-art { height: clamp(64px, 11.5svh, 150px); }
+  .destination--shop .destination-art { height: clamp(58px, 10.5svh, 136px); }
+  .destination-copy strong { font-size: clamp(23px, 6.4vw, 36px); }
+  .destination-copy small { margin-top: clamp(3px, .7svh, 9px); font-size: 12px; }
+  .destination-copy b { margin-top: clamp(6px, 1.2svh, 16px); }
+  /* the fork is a flourish between two cards; on a short screen the cards matter more */
+  .choice-fork { display: none; }
 }
 
 @media (max-width: 520px) {
@@ -906,8 +927,8 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .scene-copy--hero { top: 7%; }
   .scene-copy--hero .scene-intro { max-width: 295px; }
   .scene-heading--center h2 { font-size: clamp(42px, 12.5vw, 60px); }
-  .destination-art { height: clamp(128px, 17.5svh, 182px); }
-  .destination--shop .destination-art { height: clamp(115px, 15.5svh, 163px); }
+  .destination-art { height: clamp(82px, 15svh, 182px); }
+  .destination--shop .destination-art { height: clamp(74px, 13svh, 163px); }
   .scene-copy--left h2, .scene-copy--right h2 { font-size: 53px; }
   .loop-art { bottom: 34%; width: min(290px, 78%); height: 26%; }
   .family-art { width: min(330px, 94%); }
