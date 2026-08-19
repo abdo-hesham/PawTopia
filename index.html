@@ -318,6 +318,116 @@
     <button class="page-scrim js-close-panels" type="button" aria-label="Close open panel"></button>
 
     <dialog class="vet-dialog" data-lenis-prevent><button class="icon-button js-close-vet" type="button" aria-label="Close booking form">×</button><p class="scene-kicker">A gentle visit</p><h2>Let’s plan their checkup.</h2><p>Choose a day and tell us who is coming. We’ll save the treats.</p><form class="vet-form"><fieldset><legend>Choose a day</legend><div class="date-options"><label><input type="radio" name="date" value="" checked /><span></span></label><label><input type="radio" name="date" value="" /><span></span></label><label><input type="radio" name="date" value="" /><span></span></label><label class="date-option--pick"><input type="radio" name="date" value="" data-custom-date /><span class="date-pick-face"><i aria-hidden="true"></i><b>Pick a day</b></span></label></div><button class="calendar-toggle js-open-calendar" type="button" aria-expanded="false" aria-controls="vet-calendar">Open the calendar <span aria-hidden="true">&#8595;</span></button><div class="calendar" id="vet-calendar" hidden></div></fieldset><label class="field-label">Pet’s name <input name="petName" type="text" placeholder="Milo" required /></label><label class="field-label">Your email <input name="email" type="email" placeholder="human@example.com" required /></label><button class="button button--coral" type="submit">Request this visit <span>↗</span></button></form><div class="vet-success" hidden><span class="paw-mark paw-mark--success" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span><h3>You’re on the trail.</h3><p>We’ll email you shortly to confirm the visit.</p></div></dialog>
+    <!-- Privacy and Terms are one dialog holding two articles. They open over whatever the
+         reader was looking at, so the story keeps its scroll, its chapter and its trail. -->
+    <dialog class="policy-dialog" role="dialog" aria-modal="true" aria-labelledby="policy-title" data-lenis-prevent>
+      <div class="policy-head">
+        <span class="paw-mark paw-mark--sm policy-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="20" cy="16" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></span>
+        <p class="scene-kicker">Pawtopia</p>
+        <h2 id="policy-title">Privacy policy</h2>
+        <p class="policy-updated">Last updated August 2026</p>
+        <button class="icon-button js-close-policy" type="button" aria-label="Close this policy">&times;</button>
+      </div>
+      <div class="policy-body" data-lenis-prevent>
+        <article class="policy-article" data-policy="privacy" data-title="Privacy policy">
+          <p class="policy-lead">Pawtopia is a small shop and clinic front. This page says plainly what we do with the few details you give us, and what we never collect at all.</p>
+
+          <section><h3>Information we collect</h3>
+            <p>Only what you type in, and only when you choose to send it:</p>
+            <ul>
+              <li>An order: your name, email, phone number and delivery address.</li>
+              <li>A booking request: your pet&#8217;s name, your email, and the day you would like.</li>
+              <li>Your bag: the goods you add while you browse.</li>
+            </ul>
+            <p>We do not ask for card details anywhere on this site, and we do not collect them.</p>
+          </section>
+
+          <section><h3>How we use information</h3>
+            <p>Order details are used to pack and deliver the order and to reach you about it. Booking details are used to answer the request and agree a time. We do not use either to build a profile of you, and we do not send marketing you have not asked for.</p>
+          </section>
+
+          <section><h3>Cookies</h3>
+            <p>This site sets no cookies and runs no analytics or advertising scripts. Your bag is held in the page while you are on it, and it is gone when you close the tab.</p>
+          </section>
+
+          <section><h3>Orders and payments</h3>
+            <p>Payment is taken at the door, in cash or by card on the courier&#8217;s machine. Nothing about your card passes through this website.</p>
+          </section>
+
+          <section><h3>Veterinary booking requests</h3>
+            <p>A booking made here is a request, not a confirmed appointment. We treat what you tell us about your pet as part of that request and use it to prepare for the visit. We do not publish it and we do not pass it to anyone outside the clinic.</p>
+          </section>
+
+          <section><h3>Sharing</h3>
+            <p>We share your delivery details with the courier carrying your order, because that is how it reaches you. Beyond that we do not sell, rent or trade what you give us.</p>
+          </section>
+
+          <section><h3>Keeping it</h3>
+            <p>We keep order records for as long as we need them to run the shop and answer questions about past orders. Booking requests are kept while the visit is being arranged, and afterwards as part of the clinic&#8217;s own notes.</p>
+          </section>
+
+          <section><h3>Your choices</h3>
+            <p>Write to us and you can ask what we hold about you, ask us to correct it, or ask us to delete it. If deleting something would leave an order we still have to deliver, we will tell you which part we need to keep and why.</p>
+          </section>
+
+          <section><h3>Contact</h3>
+            <p>Questions about any of this: <a href="mailto:hello@pawtopia.example">hello@pawtopia.example</a>.</p>
+          </section>
+        </article>
+        <article class="policy-article" data-policy="terms" data-title="Terms &amp; conditions" hidden>
+          <p class="policy-lead">These are the everyday terms for shopping with Pawtopia and asking for a visit with our vets. Using the site means you are happy with them.</p>
+
+          <section><h3>Using Pawtopia</h3>
+            <p>Browse, fill a bag, order, and ask for an appointment. Please do not try to break the site or take it apart for something else &#8212; and please give us real details when you order, because those are what the courier follows.</p>
+          </section>
+
+          <section><h3>Products and pricing</h3>
+            <p>Prices are in Egyptian pounds. We try to keep the catalogue accurate, but a photograph is a photograph: colours and packaging can vary a little. If a price or a stock figure is plainly wrong, we will tell you before the order goes out rather than quietly charging the difference.</p>
+          </section>
+
+          <section><h3>Orders</h3>
+            <p>An order placed here is an offer to buy. It becomes an agreement once we confirm it. If we cannot fill part of it we will contact you, and you can take the rest or cancel.</p>
+          </section>
+
+          <section><h3>Payments</h3>
+            <p>Payment is on delivery, in cash or by card on the courier&#8217;s machine. No card details are collected on this site.</p>
+          </section>
+
+          <section><h3>Delivery</h3>
+            <ul>
+              <li>Standard: 2&#8211;4 days, EGP 45, free on orders over EGP 900.</li>
+              <li>Express: next day, EGP 70.</li>
+            </ul>
+            <p>Times are working days and start once the order is confirmed. Delays outside our hands &#8212; weather, traffic, an address where nobody answers &#8212; can move them.</p>
+          </section>
+
+          <section><h3>Returns</h3>
+            <p>You have 14 days from delivery to return goods that are unopened and in the condition they arrived in. Food, treats and anything opened for hygiene reasons cannot come back, unless they arrived damaged or wrong &#8212; in which case tell us and we will put it right.</p>
+          </section>
+
+          <section><h3>Veterinary booking requests</h3>
+            <p>A booking made here is a request for a time, not a confirmed appointment, and nothing on this site is veterinary advice. We answer to agree a time. In an emergency, call a clinic directly rather than waiting on a form.</p>
+          </section>
+
+          <section><h3>Our work</h3>
+            <p>The illustrations, words, photographs and the design of this site are ours. Read them, share a link, quote a line &#8212; but please do not lift the artwork or the copy for something else.</p>
+          </section>
+
+          <section><h3>Where we stand</h3>
+            <p>We run the site carefully, but we cannot promise it is never offline and never wrong. We stand behind the goods we sell you and the care we give your pet. Nothing here takes away the rights the law gives you as a customer.</p>
+          </section>
+
+          <section><h3>Changes to these terms</h3>
+            <p>These terms change when the shop changes. The version on this page is the one that applies, and the date above it is when it last moved.</p>
+          </section>
+
+          <section><h3>Contact</h3>
+            <p>Anything unclear: <a href="mailto:hello@pawtopia.example">hello@pawtopia.example</a>.</p>
+          </section>
+        </article>
+      </div>
+    </dialog>
+
     <div class="toast" role="status" aria-live="polite"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

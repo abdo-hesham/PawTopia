@@ -1375,9 +1375,83 @@ vetForm.addEventListener("submit", (event) => {
   gsap.fromTo(vetSuccess, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .4 });
 });
 
+// --- privacy and terms --------------------------------------------------------------------
+// One dialog holding two articles. Reading a policy is not leaving the story, so nothing
+// routes and nothing scrolls: the page underneath keeps its position, its chapter and its
+// trail, and closing the dialog puts the reader back exactly where they were standing.
+const policyDialog = document.querySelector(".policy-dialog");
+const policyTitle = document.querySelector("#policy-title");
+const policyBody = document.querySelector(".policy-body");
+let policyOpener = null;
+
+function openPolicy(kind, opener) {
+  if (!policyDialog) return;
+  let shown = null;
+  policyDialog.querySelectorAll("[data-policy]").forEach((article) => {
+    const live = article.dataset.policy === kind;
+    article.hidden = !live;
+    if (live) shown = article;
+  });
+  if (!shown) return;
+  policyTitle.textContent = shown.dataset.title;
+  policyOpener = opener || null;
+  closePanels({ restoreFocus: false });
+  if (vetDialog.open) vetDialog.close();
+  gsap.killTweensOf(policyDialog);
+  if (!policyDialog.open) policyDialog.showModal();
+  // a second policy opened from the first starts at the top of its own text
+  policyBody.scrollTop = 0;
+  lenis?.stop();
+  gsap.fromTo(policyDialog, { autoAlpha: 0, y: 20, scale: .98 }, { autoAlpha: 1, y: 0, scale: 1, duration: .44, ease: EASE.art });
+}
+
+function closePolicy() {
+  if (!policyDialog?.open) return;
+  const opener = policyOpener;
+  policyOpener = null;
+  gsap.killTweensOf(policyDialog);
+  gsap.to(policyDialog, {
+    autoAlpha: 0,
+    y: 14,
+    scale: .985,
+    duration: .3,
+    ease: EASE.textOut,
+    onComplete: () => {
+      policyDialog.close();
+      gsap.set(policyDialog, { clearProps: "opacity,visibility,transform" });
+      lenis?.start();
+      // Back to the link that opened it — unless the page has moved on and that link is no
+      // longer something a reader could reach, in which case focus goes to the brand mark
+      // rather than being dropped on the body.
+      const reachable = opener?.isConnected
+        && (opener.checkVisibility?.({ visibilityProperty: true, opacityProperty: true }) ?? true);
+      (reachable ? opener : document.querySelector(".site-header .brand"))?.focus({ preventScroll: true });
+    },
+  });
+}
+
+// The footer links keep their href, so they are still real links to share and to crawl —
+// an ordinary click reads the policy here instead of loading a page.
+document.addEventListener("click", (event) => {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const link = event.target.closest('a[href="/privacy"], a[href="/terms"]');
+  if (!link) return;
+  event.preventDefault();
+  openPolicy(link.getAttribute("href").slice(1), link);
+});
+
+document.querySelector(".js-close-policy")?.addEventListener("click", () => closePolicy());
+// Escape reaches the dialog as a cancel: taking it over keeps the closing animation
+policyDialog?.addEventListener("cancel", (event) => { event.preventDefault(); closePolicy(); });
+policyDialog?.addEventListener("click", (event) => {
+  // a click on the dialog itself is a click on the backdrop; anything inside is content
+  if (event.target === policyDialog) closePolicy();
+});
+
 window.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
-  if (vetDialog.open) closeVetDialog();
+  if (policyDialog?.open) closePolicy();
+  else if (vetDialog.open) closeVetDialog();
   else closePanels();
 });
 
@@ -1801,7 +1875,18 @@ window.addEventListener("popstate", (event) => {
   setRoute(next, { push: false });
 });
 
+// /privacy and /terms are not pages — the router has nothing to serve there, so a shared or
+// typed link used to land on the story with no policy in sight. It opens the policy instead,
+// over chapter one, and puts the address back to the story it is standing on.
+function pendingPolicy() {
+  const path = location.pathname.replace(/\/+$/, "").toLowerCase();
+  if (path !== "/privacy" && path !== "/terms") return null;
+  history.replaceState({ route: "story" }, "", "/");
+  return path.slice(1);
+}
+
 function initialize() {
+  const deepPolicy = pendingPolicy();
   setupSmoothScroll();
   buildMicroInteractions();
   applyRouteMeta(location.pathname.startsWith("/shop") ? "shop" : location.pathname.startsWith("/checkout") ? "checkout" : "story");
@@ -1841,6 +1926,8 @@ function initialize() {
   updatePawJourney();
   ScrollTrigger.refresh();
   finishLoader(() => {
+    // the policy waits for the loader rather than opening behind it
+    if (deepPolicy) openPolicy(deepPolicy);
     heroIntro?.play();
     // late art and late fonts both change the page height the trail was measured against
     ScrollTrigger.refresh();

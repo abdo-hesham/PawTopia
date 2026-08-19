@@ -595,6 +595,39 @@ nav.footer-social a:active { translate: 0; scale: .93; }
 .vet-dialog::backdrop { background: rgba(18,58,86,.38); backdrop-filter: blur(4px); }
 .vet-dialog > .icon-button { position: absolute; top: 18px; right: 18px; }
 .vet-dialog h2 { font-size: clamp(49px,6vw,75px); }
+
+/* Privacy and Terms. Same cream, navy and coral as the rest of the page, and the same
+   editorial ladder for the type — a policy nobody can read is a policy nobody reads. The
+   head stays put while the articles scroll under it, so the reader never loses the title. */
+.policy-dialog { width: min(910px, calc(100% - 32px)); max-height: 84svh; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 26px; color: var(--navy); background: var(--cream); box-shadow: 0 34px 100px rgba(18,58,86,.22); }
+.policy-dialog::backdrop { background: rgba(18,58,86,.34); backdrop-filter: blur(4px); }
+.policy-head { position: relative; padding: clamp(26px, 3.6vw, 44px) clamp(24px, 4vw, 56px) clamp(18px, 2.2vw, 26px); border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--sage-light) 0%, var(--cream) 100%); }
+.policy-mark { display: block; width: 30px; height: 30px; margin-bottom: 12px; color: var(--coral); }
+.policy-head .scene-kicker { margin: 0 0 8px; }
+.policy-head h2 { margin: 0; font-family: var(--serif); font-size: clamp(31px, 3.8vw, 52px); font-weight: 400; line-height: 1.04; letter-spacing: var(--track-display); }
+.policy-updated { margin: 10px 0 0; font-size: var(--type-small); letter-spacing: .02em; opacity: .68; }
+.policy-head .icon-button { position: absolute; top: clamp(18px, 2.4vw, 26px); right: clamp(16px, 2.4vw, 26px); }
+
+.policy-body { max-height: min(60svh, 620px); padding: clamp(22px, 3vw, 36px) clamp(24px, 4vw, 56px) clamp(30px, 4vw, 52px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; }
+.policy-body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.policy-article { max-width: 62ch; }
+.policy-lead { margin: 0 0 clamp(20px, 2.6vw, 30px); font-family: var(--serif); font-size: var(--type-lead); line-height: 1.5; }
+.policy-article section { padding-top: clamp(18px, 2.2vw, 26px); }
+.policy-article section + section { border-top: 1px solid rgba(18,58,86,.1); margin-top: clamp(16px, 2vw, 24px); }
+.policy-article h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; font-size: 13px; font-weight: 500; letter-spacing: var(--track-label); text-transform: uppercase; }
+/* the sage tick that marks a heading elsewhere on the site, at policy scale */
+.policy-article h3::before { content: ""; flex: none; width: 16px; height: 2px; border-radius: 2px; background: var(--sage); }
+.policy-article p { margin: 0 0 12px; font-size: var(--type-small); line-height: 1.72; }
+.policy-article p:last-child { margin-bottom: 0; }
+.policy-article ul { margin: 0 0 12px; padding-left: 0; list-style: none; }
+.policy-article li { position: relative; padding-left: 20px; margin-bottom: 7px; font-size: var(--type-small); line-height: 1.7; }
+.policy-article li::before { content: ""; position: absolute; top: .62em; left: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--coral); }
+.policy-article a { color: var(--coral-deep); border-bottom: 1px solid rgba(201,68,32,.35); }
+
+@media (max-width: 640px) {
+  .policy-dialog { width: calc(100% - 22px); max-height: 89svh; border-radius: 20px; }
+  .policy-body { max-height: 64svh; }
+}
 .vet-dialog > p:not(.scene-kicker) { max-width: 430px; line-height: 1.4; }
 .vet-form fieldset { margin: 27px 0 19px; padding: 0; border: 0; }
 .vet-form legend, .field-label { font-size: 11px; letter-spacing: .11em; text-transform: uppercase; }
