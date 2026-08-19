@@ -40,7 +40,7 @@
      a step on the same ladder instead of a number chosen scene by scene. The vw term does
      the travelling; the clamp ends hold the extremes. */
   --type-display: clamp(58px, 8.4vw, 126px);   /* chapter titles */
-  --type-hero: clamp(56px, 7vw, 105px);        /* chapter one, which shares its frame */
+  --type-hero: clamp(48px, min(6.2vw, 12svh), 98px);   /* chapter one, which shares its frame */
   --type-title: clamp(50px, 6.6vw, 105px);     /* second-rank titles */
   --type-sub: clamp(38px, 4.6vw, 73px);
   --type-heading: clamp(30px, 3.5vw, 60px);
@@ -191,22 +191,22 @@ em { color: var(--coral); font-weight: 400; }
 .final-environment img { width: 100%; height: 100%; object-fit: contain; transform: translateY(var(--asset-baseline-offset)); }
 .final-environment--left { --asset-baseline-offset: 9.02%; left: clamp(-170px, -9vw, -56px); }
 .final-environment--right { --asset-baseline-offset: 8.01%; right: clamp(-170px, -9vw, -56px); }
-.final-ground { position: absolute; z-index: 2; bottom: -5.2%; left: 50%; width: clamp(820px, 94vw, 1560px); aspect-ratio: 3 / 1; transform: translateX(-50%); pointer-events: none; }
+.final-ground { position: absolute; z-index: 2; right: 0; bottom: -5.2%; left: 0; width: clamp(820px, 94vw, 1560px); margin-inline: auto; aspect-ratio: 3 / 1; pointer-events: none; }
 .final-ground img { width: 100%; height: 100%; object-fit: contain; transform: translateY(30.39%); }
 
 .hero-atmosphere, .hero-environment, .hero-ground { position: absolute; pointer-events: none; }
 .hero-environment img, .hero-ground img, .scene-character--hero img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .hero-atmosphere { z-index: 0; }
 .hero-atmosphere img { display: block; width: 100%; height: auto; object-fit: contain; }
-.hero-atmosphere--left { top: clamp(96px, 11svh, 128px); left: clamp(34px, 5vw, 82px); width: 10%; }
-.hero-atmosphere--right { top: clamp(82px, 9svh, 108px); right: clamp(24px, 3.5vw, 68px); width: 10%; }
+.hero-atmosphere--left { top: clamp(74px, 9svh, 112px); left: clamp(18px, 2.6vw, 54px); width: clamp(78px, 8.5%, 132px); }
+.hero-atmosphere--right { top: clamp(64px, 7.5svh, 96px); right: clamp(14px, 2.2vw, 46px); width: clamp(72px, 8%, 124px); }
 .hero-atmosphere--left img { animation: cloud-drift 26s ease-in-out -6s infinite, cloud-breathe 9s ease-in-out infinite; }
 .hero-atmosphere--right img { animation: birds-drift 21s ease-in-out -3s infinite, birds-bob 3.4s ease-in-out infinite; }
 .hero-environment { z-index: 1; bottom: var(--scene-ground-y); width: clamp(500px, 52vw, 820px); aspect-ratio: 4 / 3; }
 .hero-environment img { transform: translateY(var(--asset-baseline-offset)); }
 .hero-environment--left { --asset-baseline-offset: 9.02%; left: clamp(-92px, -3vw, -28px); transform-origin: left bottom; }
 .hero-environment--right { --asset-baseline-offset: 8.01%; right: clamp(-92px, -3vw, -28px); transform-origin: right bottom; }
-.hero-ground { z-index: 2; bottom: var(--scene-ground-y); left: 50%; width: clamp(760px, 88vw, 1380px); aspect-ratio: 3 / 1; transform: translateX(-50%); }
+.hero-ground { z-index: 2; right: 0; bottom: var(--scene-ground-y); left: 0; width: clamp(760px, 88vw, 1380px); margin-inline: auto; aspect-ratio: 3 / 1; }
 .hero-ground img { transform: translateY(30.39%); }
 
 /* the cloud crosses the sky and comes back, breathing very slightly as it goes */
@@ -236,6 +236,13 @@ em { color: var(--coral); font-weight: 400; }
   .hero-atmosphere img { animation: none !important; }
 }
 
+/* Nothing a scene timeline animates is centred with a transform. GSAP folds whatever
+   translation it finds — `transform: translateX(-50%)` and the standalone `translate`
+   property alike — into a pixel matrix the first time it touches an element, and then that
+   pixel value is frozen. Resize the window and the hero was still centred for the old
+   width, which is what shoved the copy and the ground off to one side. Centring by
+   `left: 0; right: 0; margin-inline: auto` is layout, not transform, so the tweens have
+   nothing to bake and it holds at any width. */
 .scene-copy, .scene-heading, .family-copy, .final-copy { position: absolute; z-index: 20; }
 .scene-kicker { margin: 0 0 17px; font-size: var(--type-label); font-weight: 500; letter-spacing: var(--track-label); text-transform: uppercase; }
 h1, h2, h3 { margin: 0; font-family: var(--serif); font-weight: 400; line-height: .89; letter-spacing: var(--track-display); text-wrap: balance; }
@@ -244,16 +251,16 @@ h2 { font-size: var(--type-title); }
 h3 { font-size: var(--type-sub); }
 .scene-intro { max-width: 475px; margin: 22px 0 26px; line-height: 1.45; font-size: var(--type-lead); text-wrap: pretty; }
 
-.scene-copy--hero { top: 7.5%; left: 50%; width: min(1240px, 92vw); text-align: center; transform: translateX(-50%); }
+.scene-copy--hero { top: 7.5%; right: 0; left: 0; width: min(1080px, 78vw); margin-inline: auto; text-align: center; }
 .scene-copy--hero .scene-kicker, .scene-copy--hero .scene-intro, .scene-copy--hero .button { font-family: Arial, Helvetica, sans-serif; }
 .scene-copy--hero .scene-kicker { margin-bottom: clamp(52px, 6vh, 68px); font-size: 14px; }
 .scene-copy--hero h1 { font-size: var(--type-hero); line-height: .94; }
 .scene-copy--hero .scene-intro { max-width: 850px; margin-inline: auto; letter-spacing: 0; }
 .scene-copy--hero .button { min-height: 58px; gap: 19px; padding-inline: 34px; font-size: 14px; }
-.scene-character--hero { position: absolute; z-index: 3; bottom: var(--scene-ground-y); left: 50%; width: clamp(228px, min(21vw, 36svh), 342px); aspect-ratio: 1; transform: translateX(-50%); }
+.scene-character--hero { position: absolute; z-index: 3; right: 0; bottom: var(--scene-ground-y); left: 0; width: clamp(228px, min(21vw, 36svh), 342px); margin-inline: auto; aspect-ratio: 1; }
 .scene-character--hero img { transform: translateY(7.42%); }
 .story-scene--hero .scroll-cue { display: none; }
-.scroll-cue { position: absolute; z-index: 25; bottom: 23px; left: 50%; margin: 0; transform: translateX(-50%); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+.scroll-cue { position: absolute; z-index: 25; right: 0; bottom: 23px; left: 0; width: fit-content; margin: 0 auto; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
 .scroll-cue i { display: inline-block; width: 1px; height: 27px; margin-right: 9px; vertical-align: middle; background: var(--navy); transform-origin: top; }
 
 /* travel space: mostly cream, a few walking steps, one small clue — the whitespace is the story */
@@ -331,6 +338,15 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .choice-fork path { fill: none; stroke: rgba(152,173,134,.62); stroke-width: 2; stroke-dasharray: 5 9; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .55; }
 
 @media (min-width: 901px) and (max-height: 820px) {
+  /* A wide but short window is the one shape where the hero copy and the walker fight for
+     the same band of screen: the headline stays large while the ground rises to meet it, and
+     the call to action landed on the dog. The type and the gaps come down together. */
+  :root { --type-hero: clamp(44px, min(5.4vw, 10svh), 84px); }
+  .scene-copy--hero { top: 5.5%; }
+  .scene-copy--hero .scene-kicker { margin-bottom: clamp(24px, 3.4svh, 44px); }
+  .scene-copy--hero .scene-intro { margin-top: clamp(10px, 1.8svh, 18px); }
+  .scene-copy--hero .button { min-height: 50px; }
+  .scene-character--hero { width: clamp(196px, min(18vw, 30svh), 300px); }
   .choice-environment { width: clamp(300px, 31vw, 480px); }
   .scene-heading--center h2 { font-size: clamp(50px, 5.6vw, 92px); }
   .scene-heading--center > p:last-child { margin-top: clamp(20px, 4.4svh, 40px); }
@@ -421,7 +437,7 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 
 .story-interlude { position: relative; z-index: 5; min-height: 125svh; }
 .interlude-frame { position: sticky; top: 0; height: 100svh; overflow: hidden; background: var(--cream); }
-.interlude-quote { position: absolute; z-index: 2; top: 33%; left: 50%; width: min(760px, 88vw); margin: 0; transform: translateX(-50%); text-align: center; }
+.interlude-quote { position: absolute; z-index: 2; top: 33%; right: 0; left: 0; width: min(760px, 88vw); margin: 0 auto; text-align: center; }
 .interlude-quote p { margin: 0; font-family: var(--serif); font-size: var(--type-quote); font-weight: 400; line-height: 1.22; letter-spacing: -.022em; text-wrap: balance; hanging-punctuation: first last; }
 .interlude-quote em { font-style: italic; letter-spacing: -.01em; }
 .interlude-portal { position: absolute; z-index: 3; top: 58%; left: 50%; width: 62px; height: 62px; margin: -40px 0 0 -23.7px; color: #ff7657; transform-origin: 38.3% 64.6%; }
@@ -483,12 +499,12 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .family-heart::before { content: ""; position: absolute; inset: 8%; border-radius: 50%; background: var(--family-field-tone, #eaeadb); }
 .family-heart svg { position: relative; display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 
-.story-scene--final { min-height: 120svh; }
+.story-scene--final { min-height: 172svh; }
 .final-atmosphere { position: absolute; z-index: 1; width: clamp(96px, 8vw, 140px); pointer-events: none; }
 .final-atmosphere img { width: 100%; height: auto; }
 .final-atmosphere--left { top: 25.5%; left: 12.6%; }
 .final-atmosphere--right { top: 29.2%; left: 72.5%; }
-.final-copy { z-index: 22; top: 27%; left: 50%; width: min(1120px, 92vw); text-align: center; transform: translateX(-50%); }
+.final-copy { z-index: 22; top: 27%; right: 0; left: 0; width: min(1120px, 92vw); margin-inline: auto; text-align: center; }
 .final-copy h2 { font-size: var(--type-display); line-height: .92; }
 .final-copy h3 { margin-top: clamp(18px, 2.8svh, 32px); font-size: var(--type-sub); line-height: 1; }
 .final-copy h3 em { font-style: italic; letter-spacing: -.025em; }
@@ -651,7 +667,7 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
   .brand strong { font-size: 23px; }
   .brand small { display: none; }
   .brand .paw-mark { transform: scale(.82); transform-origin: left center; margin-right: -5px; }
-  .chapter-marker { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); padding: 7px 11px; font-size: 9px; }
+  .chapter-marker { position: fixed; top: 76px; right: 0; left: 0; width: fit-content; margin-inline: auto; padding: 7px 11px; font-size: 9px; }
   .header-actions .header-link, .header-actions .button { display: none; }
   .story-scene { min-height: 104svh; }
   .story-scene--hero { min-height: 126svh; }

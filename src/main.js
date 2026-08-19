@@ -722,7 +722,7 @@ function buildFamilyMotion() {
 }
 
 function buildFinalMotion() {
-  const stage = sceneStage("#scene-final", { lead: .94, tail: .2, scrub: .75 });
+  const stage = sceneStage("#scene-final", { lead: .94, tail: .06, scrub: .75 });
   if (!stage) return;
   sceneTimelines.push(stage);
   const t = STAGE;
@@ -1563,6 +1563,8 @@ const wipe = (() => {
 
 let routeBusy = false;
 let routeTimer = 0;
+// a chapter chosen from another route, which outranks the scroll position we left behind
+let pendingScene = -1;
 let pendingRoute = null;
 let storyScroll = 0;
 let shopBuilt = false;
@@ -1623,7 +1625,12 @@ function startRoute(next, { push, immediate }) {
 
     route = next;
     // a hidden view measures as zero, so every trigger is re-measured after the swap
-    const target = next === "story" ? storyScroll : 0;
+    let target = next === "story" ? storyScroll : 0;
+    if (next === "story" && pendingScene >= 0) {
+      target = scenes[pendingScene]?.offsetTop ?? storyScroll;
+      setActiveScene(pendingScene);
+    }
+    pendingScene = -1;
     lenis?.scrollTo(target, { immediate: true });
     window.scrollTo(0, target);
     ScrollTrigger.refresh();
@@ -1634,6 +1641,23 @@ function startRoute(next, { push, immediate }) {
     clearTimeout(routeTimer);
     if (!routeBusy) return;
     routeBusy = false;
+    // The swap measures while the arriving view is still held at opacity 0 behind the wipe.
+    // Scrubbed timelines refreshed in that state sit at progress 0 — which is their hidden
+    // state — and nothing moves the scroll afterwards to wake them, so a reader returning to
+    // the story found the chapter they left standing empty. Measuring again now that the
+    // view is really on screen puts every timeline back where the scroll position says.
+    if (route === "story") {
+      // Rebuilt, not merely refreshed. While the story was hidden its sections measured as
+      // nothing, so every scrubbed timeline was scrubbed to its end against a zero-height
+      // page, and the chapter the reader had been looking at was left parked in its exit
+      // state — faded out, or gone. The inline values that scrub left behind are wiped
+      // first, because a rebuilt timeline only writes the properties it animates and
+      // anything else would keep the stale value. Then the scenes are rebuilt against the
+      // visible layout and set from the real scroll position.
+      gsap.set(storyPage.querySelectorAll("[style]"), { clearProps: "opacity,visibility,transform" });
+      refreshLayout({ remeasureMotion: true });
+      ScrollTrigger.update();
+    }
     // A route change replaces the page under a screen reader without a load event, so focus
     // moves to the arriving view and it reads its own heading. It waits for the wipe to
     // finish: the incoming view is held at visibility hidden while it plays, and a hidden
@@ -1708,9 +1732,14 @@ document.querySelectorAll(".js-go-checkout").forEach((control) => control.addEve
   setRoute("checkout");
 }));
 
-// the brand mark and the chapter links belong to the story, so they carry the reader back
+// The brand mark and the chapter links belong to the story, so they carry the reader back —
+// and they carry their destination with them. Returning used to restore whatever scroll
+// position the reader left from, so pressing the logo on the shop dropped them back into
+// chapter two instead of the top of the journey.
 document.querySelectorAll(".js-scene-link").forEach((control) => control.addEventListener("click", () => {
-  if (route === "shop") setRoute("story");
+  if (route === "story") return;
+  pendingScene = Math.max(0, Math.min(scenes.length - 1, Number(control.dataset.sceneTarget || 0)));
+  setRoute("story");
 }));
 
 window.addEventListener("popstate", (event) => {
