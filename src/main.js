@@ -382,7 +382,15 @@ function buildGlobalPawJourney() {
 function updatePawJourney() {
   const storyTop = storyPage.getBoundingClientRect().top + window.scrollY;
   const focusY = window.scrollY - storyTop + window.innerHeight * .92;
-  journeyLayer.style.setProperty("--paw-presence", pawPresence(focusY - window.innerHeight * .42).toFixed(3));
+  const presence = pawPresence(focusY - window.innerHeight * .42);
+  journeyLayer.style.setProperty("--paw-presence", presence.toFixed(3));
+  // While a chapter owns the screen the walk is held where it stopped. It used to keep
+  // stepping behind the chapter — the prints below the fold were lit one by one against a
+  // hidden layer — so when the chapter let go and the layer came back, four prints that had
+  // already been stepped on faded up together as a block. Holding the walk means the stretch
+  // below a chapter is still unwalked when the screen opens, and it is walked then: one print
+  // after another, in the order the reader is about to travel them.
+  if (presence < .12) return;
   let nextActive = -1;
   for (let index = 0; index < routeY.length; index += 1) {
     if (routeY[index] <= focusY) nextActive = index;
@@ -401,7 +409,7 @@ function updatePawJourney() {
     const current = index === nextActive;
     const wasLanded = index <= previous;
     const step = walkingForward ? index - previous : previous - index;
-    const delay = (past || current) !== wasLanded ? Math.min(340, Math.max(0, step - 1) * 55) : 0;
+    const delay = (past || current) !== wasLanded ? Math.min(620, Math.max(0, step - 1) * 90) : 0;
     paw.style.setProperty("--paw-delay", `${delay}ms`);
     paw.classList.toggle("is-past", past);
     paw.classList.toggle("is-current", current);
