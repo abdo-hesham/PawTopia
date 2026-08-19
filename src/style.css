@@ -391,7 +391,14 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .product-note b { grid-column: 3; grid-row: 1 / 3; align-self: center; font-size: clamp(12px, .95vw, 14px); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
 
 .story-scene--loop { min-height: 300svh; background: var(--cream); }
-.loop-frame { --loop-walk: 0%; position: sticky; top: 0; min-height: 100svh; overflow: hidden; isolation: isolate; }
+/* The interlude starts a screen inside this section and its frame is opaque cream, so at the
+   interlude's z-index it slid up over chapter four while chapter four was still pinned and
+   playing — the fourth stage was cut off from the bottom rather than read. This stage paints
+   above the frame that follows it, so nothing covers it until it has finished. */
+.loop-frame { --loop-walk: 0%; position: sticky; z-index: 6; top: 0; min-height: 100svh; overflow: hidden; isolation: isolate; pointer-events: none; }
+/* Sitting above the interlude, the empty frame would keep catching clicks meant for what is
+   underneath it long after its own contents have gone, so only its contents take input. */
+.loop-frame > * { pointer-events: auto; }
 .scene-copy--loop { top: 18%; left: clamp(20px, 6.8vw, 124px); width: min(860px, 50%); }
 .scene-copy--loop h2 { display: grid; font-size: var(--type-title); line-height: .92; }
 /* offset halves: the outgoing line is gone before the incoming one starts, so the two
