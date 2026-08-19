@@ -137,7 +137,7 @@ const HERO_PAW_COUNT = 6;
 const LOOP_WALK = .82;
 // The four stages take an even quarter each of the pinned scroll, and the last of them is
 // done before the chapter starts handing over, so RETURN is read rather than glimpsed.
-const LOOP_STAGES_END = .88;
+const LOOP_STAGES_END = .8;
 const loopStageAt = (progress) => Math.floor(Math.max(0, Math.min(.999, progress / LOOP_STAGES_END)) * 4);
 // chapter five arrives inside the last fifth of the paw zoom, so its reveal runs the same
 // shape as every other chapter at roughly two fifths of the scale
@@ -497,6 +497,10 @@ function buildHeroMotion() {
     headline: hero.scope("#love-title .line-mask > span"),
     eyebrow: hero.scope(".scene-copy--hero .scene-kicker"),
   }, 0);
+  // the world chapter one stands in leaves with it: a dimmed layer left behind reads as a
+  // ghost of the last chapter sitting under the next one
+  fadeOut(hero, hero.scope(".hero-environment, .hero-atmosphere"), .74, { duration: .2, ease: EASE.env });
+  fadeOut(hero, hero.scope(".hero-ground"), .8, { duration: .18, ease: EASE.env });
   hero
     // editorial depth: background drifts slowest, the character barely moves, ground leads
     .to(hero.scope(".hero-atmosphere"), { y: 24 * motionScale, duration: 1, ease: "none" }, 0)
@@ -515,7 +519,7 @@ function buildHeroMotion() {
   fadeOut(hero, hero.scope(".hero-environment--left"), .56, { from: { scale: 1 }, to: { scale: 1.02 }, duration: .34, ease: EASE.env });
   fadeOut(hero, hero.scope(".hero-ground"), .62, { from: { scale: 1 }, to: { scale: 1.01 }, duration: .3, ease: EASE.env });
   // the person and dog stay longest, so the walk itself is the last thing chapter one releases
-  fadeOut(hero, hero.scope(".scene-character--hero"), .7, { to: { autoAlpha: .22 }, duration: .22, ease: EASE.env });
+  fadeOut(hero, hero.scope(".scene-character--hero"), .7, { duration: .24, ease: EASE.env });
 }
 
 function buildChoiceMotion() {
@@ -552,7 +556,7 @@ function buildChoiceMotion() {
   fadeOut(stage, stage.scope(".destination--shop"), stage.exitAt(.4), { from: { x: 0 }, to: { x: -30 * motionScale }, duration: t.art, ease: EASE.env });
   fadeOut(stage, stage.scope(".destination--care"), stage.exitAt(.4), { from: { x: 0 }, to: { x: 30 * motionScale }, duration: t.art, ease: EASE.env });
   fadeOut(stage, stage.scope(".choice-fork"), stage.exitAt(.46), { from: { scaleX: 1 }, to: { scaleX: .08 }, duration: t.art, ease: EASE.env });
-  fadeOut(stage, stage.scope(".choice-environment"), stage.exitAt(.56), { to: { autoAlpha: .12 }, duration: t.env, ease: EASE.env });
+  fadeOut(stage, stage.scope(".choice-environment"), stage.exitAt(.5), { duration: t.env, ease: EASE.env });
 }
 
 function buildDiscoveryMotion() {
@@ -588,8 +592,8 @@ function buildDiscoveryMotion() {
     headline: stage.scope("#discovery-title .line-mask > span"),
     eyebrow: stage.scope(".scene-copy--left .scene-kicker"),
   }, stage.exitAt(.1), { t });
-  fadeOut(stage, stage.scope(".discovery-world"), stage.exitAt(.46), { from: { yPercent: 0 }, to: { autoAlpha: .1, yPercent: -3 }, duration: t.art, ease: EASE.env });
-  fadeOut(stage, stage.scope(".discovery-ground"), stage.exitAt(.56), { to: { autoAlpha: .1 }, duration: t.env, ease: EASE.env });
+  fadeOut(stage, stage.scope(".discovery-world"), stage.exitAt(.4), { from: { yPercent: 0 }, to: { yPercent: -3 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".discovery-ground"), stage.exitAt(.5), { duration: t.env, ease: EASE.env });
 }
 
 function buildLoopMotion() {
@@ -641,12 +645,10 @@ function buildInterludeMotion() {
   const quote = interlude.querySelector(".interlude-quote");
   const portal = interlude.querySelector(".interlude-portal");
   const journey = document.querySelector(".global-paw-journey");
-  // The paw is a portal, not a wipe. It used to grow to a hundred times its size until it
-  // filled the screen with cream and the next chapter was simply behind it — which is a cut
-  // dressed as a zoom. It grows to about seven now, the cream bed it stands on clears while
-  // it grows, and chapter five is already there, seen through and around the paw, before the
-  // paw itself fades.
-  const portalScale = stacked ? 6.2 : 7.4;
+  // The paw fills the screen before chapter five exists. It grows until nothing else is
+  // visible, turns the colour of the page, and only then lets go — so the reader never sees
+  // the veterinary world arrive, they find it already standing when the paw opens.
+  const portalScale = stacked ? 96 : 112;
 
   const zoom = registerTimeline(gsap.timeline({
     defaults: { ease: "none" },
@@ -671,18 +673,17 @@ function buildInterludeMotion() {
     // 33%–44% deliberate pause, then the quote leaves and the paw is alone
     .to(quoteLines, { autoAlpha: 0, y: -15, duration: .12, ease: EASE.textOut, stagger: .02 }, .44)
     .to(journey, { autoAlpha: 0, duration: .07 }, .48)
-    // one continuous growth rather than four steps, so the scroll drives a movement instead
-    // of a series of jumps
-    .to(portal, { scale: portalScale, duration: .34, ease: EASE.env }, .5)
-    .to(portal, { color: "#f8dcc8", duration: .12 }, .66);
+    // one continuous growth rather than a series of jumps: by .82 the paw is the screen
+    .to(portal, { scale: portalScale, duration: .32, ease: EASE.env }, .5)
+    // and it takes the colour of the page as it arrives, so the screen turns cream rather
+    // than coral before chapter five is uncovered
+    .to(portal, { color: "#f8dcc8", duration: .1 }, .64)
+    .to(portal, { color: "#fbf6ec", duration: .1 }, .74);
 
   zoom
-    // the cream bed clears while the paw is still growing: chapter five arrives underneath it
-    .to(frame, { backgroundColor: "rgba(251,246,236,0)", duration: .14 }, .6)
-    // and only once that world is standing does the paw itself let go
-    .to(portal, { autoAlpha: 0, scale: portalScale * 1.35, duration: .16, ease: EASE.env }, .78)
-    .set(frame, { autoAlpha: 0 }, .95)
-    .to(journey, { autoAlpha: 1, duration: .06 }, .9);
+    // the frame lets go last, uncovering the world that was built behind the paw
+    .to(frame, { autoAlpha: 0, duration: .09 }, .9)
+    .to(journey, { autoAlpha: 1, duration: .06 }, .94);
 
   // Chapter five's own timeline takes over from three quarters of the way through the zoom,
   // so the sage world is already there when the giant paw dissolves. It is handed the scroll
@@ -691,7 +692,7 @@ function buildInterludeMotion() {
   const viewport = window.innerHeight;
   const zoomStart = interlude.offsetTop - viewport * .35;
   const zoomEnd = interlude.offsetTop + interlude.offsetHeight - viewport;
-  return zoomStart + (zoomEnd - zoomStart) * .58;
+  return zoomStart + (zoomEnd - zoomStart) * .8;
 }
 
 function buildVetMotion(handoverPx) {
@@ -706,10 +707,9 @@ function buildVetMotion(handoverPx) {
   // runs at roughly two thirds speed and lands inside the first half-screen of scroll: by
   // the time the section is established, the whole chapter — services included — is there.
   const t = scaleTiming(STAGE, .62);
-  // The world is built under the growing paw — sage field first, then the vet — but nothing
-  // is written until the paw has gone. Reading a headline through a coral paw the size of the
-  // screen is not a transition, it is two pictures at once.
-  const at = { env: 0, art: .05, eyebrow: .62, headline: .7, body: .82, rows: .88 };
+  // Chapter five is assembled behind the paw while the paw is the whole screen, so by the
+  // time the screen opens the scene is already standing.
+  const at = { env: 0, art: .06, eyebrow: .16, headline: .22, body: .34, rows: .4 };
 
   // ENTER — sage field, sprigs, the vet and dog, chapter label, headline, copy, services
   revealEnv(stage, stage.scope(".vet-blob"), at.env, { t });
@@ -736,9 +736,9 @@ function buildVetMotion(handoverPx) {
     headline: stage.scope("#vet-title .line-mask > span"),
     eyebrow: stage.scope(".scene-copy--right .scene-kicker"),
   }, stage.exitAt(.16), { t });
-  fadeOut(stage, stage.scope(".vet-character"), stage.exitAt(.5), { from: { yPercent: 0 }, to: { autoAlpha: .1, yPercent: -2 }, duration: t.art, ease: EASE.env });
-  fadeOut(stage, stage.scope(".vet-branch"), stage.exitAt(.54), { to: { autoAlpha: .08 }, duration: t.art, ease: EASE.env, stagger: t.rows });
-  fadeOut(stage, stage.scope(".vet-blob"), stage.exitAt(.58), { to: { autoAlpha: .1 }, duration: t.env, ease: EASE.env });
+  fadeOut(stage, stage.scope(".vet-character"), stage.exitAt(.44), { from: { yPercent: 0 }, to: { yPercent: -2 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".vet-branch"), stage.exitAt(.48), { duration: t.art, ease: EASE.env, stagger: t.rows });
+  fadeOut(stage, stage.scope(".vet-blob"), stage.exitAt(.52), { duration: t.env, ease: EASE.env });
 }
 
 function buildFamilyMotion() {
@@ -773,8 +773,8 @@ function buildFamilyMotion() {
     eyebrow: stage.scope(".family-kicker"),
   }, stage.exitAt(0), { t });
   fadeOut(stage, stage.scope(".family-sweep, .family-branch"), stage.exitAt(.3), { duration: t.body, ease: EASE.env, stagger: t.rows });
-  fadeOut(stage, stage.scope(".family-art"), stage.exitAt(.42), { from: { yPercent: 0 }, to: { autoAlpha: .1, yPercent: -3 }, duration: t.art, ease: EASE.env });
-  fadeOut(stage, stage.scope(".family-field"), stage.exitAt(.54), { to: { autoAlpha: .1 }, duration: t.env, ease: EASE.env });
+  fadeOut(stage, stage.scope(".family-art"), stage.exitAt(.38), { from: { yPercent: 0 }, to: { yPercent: -3 }, duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".family-field"), stage.exitAt(.48), { duration: t.env, ease: EASE.env });
 }
 
 function buildFinalMotion() {
@@ -809,8 +809,8 @@ function buildFinalMotion() {
   fadeOut(stage, stage.scope(".button-row .button"), stage.exitAt(0), { from: { y: 0 }, to: { y: -20 }, duration: t.cta, stagger: t.rows });
   fadeOut(stage, stage.scope(".final-divider"), stage.exitAt(.08), { duration: t.body, ease: EASE.env });
   fadeOut(stage, stage.scope(".final-copy h3, #final-title, #scene-final .scene-kicker"), stage.exitAt(.14), { from: { y: 0 }, to: { y: -20 }, duration: t.headline, stagger: t.stagger });
-  fadeOut(stage, stage.scope(".final-pet"), stage.exitAt(.4), { to: { autoAlpha: .18 }, duration: t.art, ease: EASE.env });
-  fadeOut(stage, stage.scope(".final-environment, .final-atmosphere, .final-ground"), stage.exitAt(.52), { to: { autoAlpha: .22 }, duration: t.env, ease: EASE.env, stagger: t.rows });
+  fadeOut(stage, stage.scope(".final-pet"), stage.exitAt(.4), { duration: t.art, ease: EASE.env });
+  fadeOut(stage, stage.scope(".final-environment, .final-atmosphere, .final-ground"), stage.exitAt(.5), { duration: t.env, ease: EASE.env, stagger: t.rows });
 }
 
 // The lines that live out in the open beside the trail are part of the walk, so they read
@@ -840,15 +840,19 @@ function buildTravelMotion() {
     revealWords(track, words, 0, { t: TRAVEL_TIMING, stagger: .045 });
     // the camera keeps moving: the whole line drifts up through the space it sits in
     parallax(track, line, -34 * motionScale, { at: 0, duration: 1 });
-    // and it leaves the way it came, up and out, before the next paws continue
-    exitWords(track, words, .62, { t: TRAVEL_TIMING, stagger: .028 });
+    // It leaves the way it came, up and out — but quickly and almost together. A long
+    // cascade meant the line spent most of its life half-lit, three words in and three words
+    // out, which reads as a broken line rather than a phrase being spoken and finished.
+    exitWords(track, words, .68, { t: TRAVEL_TIMING, stagger: .01 });
   });
 }
 
 // the journey is over, so the footer arrives quietly: the Pawtopia paw the trail was walking
 // toward, then the send-off, then the links, then the legal line
 function buildFooterMotion() {
-  const footer = sceneTrack(".site-footer", { start: "top 86%", end: "top 6%", scrub: .78 });
+  // The send-off releases a little before its section ends, so the footer starts arriving
+  // while chapter seven is still letting go rather than after a screen of nothing.
+  const footer = sceneTrack(".site-footer", { start: "top 118%", end: "top 8%", scrub: .78 });
   if (!footer) return;
   revealEnv(footer, footer.scope(".footer-blob"), 0, { scale: 1.03, stagger: SCRUB.stagger });
   // the reveal moves the mark inside the span, so the span keeps its own arrival scale
