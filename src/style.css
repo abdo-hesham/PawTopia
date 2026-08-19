@@ -53,6 +53,9 @@
 }
 
 * { box-sizing: border-box; }
+/* For the half of a card that is drawn rather than written: the star marks, the bare review
+   count. The sentence they stand for goes here, off screen but in the accessibility tree. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 /* Scrollbars are hidden everywhere the page scrolls something of its own — the bag, the
    product view, the booking dialog. The content still scrolls by wheel, touch, keyboard and
    drag; only the platform's grey bar is gone, which is what breaks the illustration. */

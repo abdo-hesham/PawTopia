@@ -214,14 +214,14 @@
       <div class="shop-body">
         <aside class="shop-filters" aria-label="Filter products">
           <div class="shop-filters__top"><p>Filter by</p><button class="shop-clear" type="button">Clear all</button></div>
-          <section class="filter-group"><h2>Pet type</h2><div class="filter-pets"></div></section>
-          <section class="filter-group"><h2>Category</h2><div class="filter-categories"></div></section>
-          <section class="filter-group filter-price"><h2>Price range</h2><input type="range" min="150" max="3000" step="10" value="3000" autocomplete="off" aria-label="Maximum price" /><p><span>EGP 0</span><output>EGP 3000+</output></p></section>
+          <section class="filter-group" aria-labelledby="filter-pet-heading"><h2 id="filter-pet-heading">Pet type</h2><div class="filter-pets"></div></section>
+          <section class="filter-group" aria-labelledby="filter-category-heading"><h2 id="filter-category-heading">Category</h2><div class="filter-categories"></div></section>
+          <section class="filter-group filter-price" aria-labelledby="filter-price-heading"><h2 id="filter-price-heading">Price range</h2><input type="range" min="150" max="3000" step="10" value="3000" autocomplete="off" aria-label="Maximum price" /><p><span>EGP 0</span><output>EGP 3000+</output></p></section>
         </aside>
 
         <div class="shop-main">
           <div class="shop-toolbar">
-            <p class="shop-count">Showing 1-12 of 290 products</p>
+            <p class="shop-count" aria-live="polite">Showing 1-12 of 290 products</p>
             <div class="shop-sort"><span id="sort-label">Sort by</span><button class="sort-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="sort-label sort-value"><b id="sort-value"></b><i aria-hidden="true"></i></button><ul class="sort-menu" role="listbox" aria-labelledby="sort-label" hidden></ul></div>
           </div>
           <div class="product-grid"></div>

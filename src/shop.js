@@ -135,16 +135,29 @@ function visibleProducts() {
   return list;
 }
 
+// Which hearts are filled has to outlive the grid, because every filter, sort and page
+// re-renders all twelve cards from scratch.
+const saved = new Set();
+
+function categoryLabel(id) {
+  return CATEGORIES.find((category) => category.id === id)?.label || id;
+}
+
+// The card is an article named by its own heading. Everything a shopper can see is in the
+// text — the stars and the bare "(128)" are a picture of a rating, so the rating is written
+// out for a screen reader beside them and the marks themselves are hidden.
 function cardMarkup(product) {
-  return `<article class="product-card" data-product-card="${product.id}">
+  const isSaved = saved.has(product.id);
+  const nameId = `product-name-${product.id}`;
+  return `<article class="product-card" data-product-card="${product.id}" aria-labelledby="${nameId}">
     ${product.badge ? `<span class="product-badge product-badge--${product.badge.split(" ")[0].toLowerCase()}">${product.badge}</span>` : ""}
-    <button class="product-save" type="button" aria-label="Save ${product.name}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.1 4.9 13a4.5 4.5 0 0 1 6.4-6.4l.7.7.7-.7A4.5 4.5 0 1 1 19.1 13Z" /></svg></button>
+    <button class="product-save${isSaved ? " is-saved" : ""}" type="button" data-save="${product.id}" aria-pressed="${isSaved}" aria-label="${isSaved ? "Remove" : "Add"} ${product.name} ${isSaved ? "from" : "to"} your wishlist"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.1 4.9 13a4.5 4.5 0 0 1 6.4-6.4l.7.7.7-.7A4.5 4.5 0 1 1 19.1 13Z" /></svg></button>
     <span class="product-art"><img src="${photo(product.photo)}" alt="${product.name} — ${product.detail}" width="700" height="700" loading="lazy" decoding="async" /></span>
-    <h3><button class="product-open" type="button" data-open="${product.id}">${product.name}</button></h3>
+    <h3 id="${nameId}"><button class="product-open" type="button" data-open="${product.id}">${product.name}</button></h3>
     <p class="product-blurb">${product.blurb}</p>
-    <p class="product-variant">${product.detail}</p>
-    <p class="product-rating">${stars(product.rating)}<small>(${product.reviews})</small></p>
-    <p class="product-foot"><b>${money(product.price)}</b><button class="product-add" type="button" data-add="${product.id}" aria-label="Add ${product.name} to bag"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h2.2l2.1 9.4a2 2 0 0 0 2 1.6h6.6a2 2 0 0 0 2-1.5L21 8H7" /><circle cx="10.5" cy="19.5" r="1.3" /><circle cx="17" cy="19.5" r="1.3" /></svg></button></p>
+    <p class="product-variant">${product.detail}<span class="sr-only"> · ${categoryLabel(product.category)}</span></p>
+    <p class="product-rating"><span aria-hidden="true">${stars(product.rating)}</span><small aria-hidden="true">(${product.reviews})</small><span class="sr-only">Rated ${product.rating} out of 5 from ${product.reviews} reviews</span></p>
+    <p class="product-foot"><b>${money(product.price)}</b><button class="product-add" type="button" data-add="${product.id}" aria-label="Add ${product.name} to your bag, ${money(product.price)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h2.2l2.1 9.4a2 2 0 0 0 2 1.6h6.6a2 2 0 0 0 2-1.5L21 8H7" /><circle cx="10.5" cy="19.5" r="1.3" /><circle cx="17" cy="19.5" r="1.3" /></svg></button></p>
   </article>`;
 }
 
@@ -390,9 +403,12 @@ export function buildShop({ onAdd } = {}) {
   price.value = MAX_PRICE;
   view.querySelector(".filter-price span").textContent = money(MIN_PRICE);
   view.querySelector(".filter-price output").textContent = money(MAX_PRICE);
+  price.setAttribute("aria-valuetext", money(MAX_PRICE));
   price.addEventListener("input", () => {
     state.price = Number(price.value);
     view.querySelector(".filter-price output").textContent = money(state.price);
+    // a range input announces "3000"; the shopper is choosing money, so say the money
+    price.setAttribute("aria-valuetext", money(state.price));
     renderGrid({ animate: false });
   });
 
@@ -496,7 +512,13 @@ export function buildShop({ onAdd } = {}) {
     }
     const save = event.target.closest(".product-save");
     if (save) {
-      save.classList.toggle("is-saved");
+      const id = save.dataset.save;
+      const now = !saved.has(id);
+      if (now) saved.add(id); else saved.delete(id);
+      const name = CATALOGUE.find((product) => product.id === id)?.name || "this product";
+      save.classList.toggle("is-saved", now);
+      save.setAttribute("aria-pressed", String(now));
+      save.setAttribute("aria-label", `${now ? "Remove" : "Add"} ${name} ${now ? "from" : "to"} your wishlist`);
       gsap.fromTo(save, { scale: .8 }, { scale: 1, duration: .38, ease: EASE.art });
       return;
     }
