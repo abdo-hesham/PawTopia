@@ -110,6 +110,7 @@ let routeY = [];
 let activePaw = -2;
 let routeFrame = 0;
 let stageRanges = [];
+let walkFrame = 0;
 let routeGuideVisible = false;
 let sceneMotionBuilt = false;
 let chapterBands = [];
@@ -252,7 +253,10 @@ function pawPresence(centreY) {
   for (let index = 0; index < stageRanges.length; index += 1) {
     const { top, bottom } = stageRanges[index];
     const arriving = clamp01((scroll - (top - edge)) / edge);
-    const leaving = clamp01((bottom - viewport + edge - scroll) / edge);
+    // The trail starts coming back a fifth of a screen before the stage is released rather
+    // than at the release itself. By then the chapter's exit has all but finished, and the
+    // alternative was a plain cream screen with the chapter gone and the walk not yet back.
+    const leaving = clamp01((bottom - viewport + edge * .3 - scroll) / edge);
     held = Math.max(held, arriving * leaving);
   }
 
@@ -381,8 +385,14 @@ function buildGlobalPawJourney() {
 
 function updatePawJourney() {
   const storyTop = storyPage.getBoundingClientRect().top + window.scrollY;
-  const focusY = window.scrollY - storyTop + window.innerHeight * .92;
-  const presence = pawPresence(focusY - window.innerHeight * .42);
+  const viewport = window.innerHeight;
+  // Where the walk has reached. It used to be 92% down the screen, which meant a print was
+  // stepped on almost as soon as it crossed the bottom edge — and the three prints below a
+  // chapter's released stage were all past that line at once, so they arrived together.
+  // Reading the walk further up the screen spaces them out: each print is stepped on as the
+  // reader scrolls to it, one at a time, the way the rest of the trail already behaved.
+  const focusY = window.scrollY - storyTop + viewport * .62;
+  const presence = pawPresence(window.scrollY - storyTop + viewport * .5);
   journeyLayer.style.setProperty("--paw-presence", presence.toFixed(3));
   // While a chapter owns the screen the walk is held where it stopped. It used to keep
   // stepping behind the chapter — the prints below the fold were lit one by one against a
@@ -395,6 +405,20 @@ function updatePawJourney() {
   for (let index = 0; index < routeY.length; index += 1) {
     if (routeY[index] <= focusY) nextActive = index;
     else break;
+  }
+  // One print per frame. A held walk, a chapter click, a restored scroll position — anything
+  // that leaves the walk behind used to be repaid in a single update, and a stretch of prints
+  // lit as one block. Repaying it a step at a time means the reader watches the walk cross the
+  // ground either way, and the rest of the ground is covered on the frames after this one, so
+  // catching up still takes well under a second.
+  if (nextActive > activePaw + 1) {
+    // A few prints owed is a walk and is paced like one. A long way owed is a page that was
+    // jumped rather than travelled — a chapter click, a restored position — and there the
+    // walk covers the ground as fast as the frames allow instead of making the reader wait.
+    const hurry = nextActive - activePaw > 8 || document.body.classList.contains("is-navigating");
+    nextActive = activePaw + 1;
+    const step = () => { walkFrame = 0; updatePawJourney(); };
+    if (!walkFrame) walkFrame = hurry ? requestAnimationFrame(step) : setTimeout(step, 110);
   }
   if (nextActive === activePaw) return;
   // A jump — a fast flick, a chapter click, a restored scroll — would otherwise land every
@@ -409,7 +433,7 @@ function updatePawJourney() {
     const current = index === nextActive;
     const wasLanded = index <= previous;
     const step = walkingForward ? index - previous : previous - index;
-    const delay = (past || current) !== wasLanded ? Math.min(620, Math.max(0, step - 1) * 90) : 0;
+    const delay = (past || current) !== wasLanded ? Math.min(900, Math.max(0, step - 1) * 150) : 0;
     paw.style.setProperty("--paw-delay", `${delay}ms`);
     paw.classList.toggle("is-past", past);
     paw.classList.toggle("is-current", current);
