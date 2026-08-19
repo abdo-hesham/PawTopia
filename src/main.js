@@ -706,7 +706,10 @@ function buildVetMotion(handoverPx) {
   // runs at roughly two thirds speed and lands inside the first half-screen of scroll: by
   // the time the section is established, the whole chapter — services included — is there.
   const t = scaleTiming(STAGE, .62);
-  const at = { env: 0, art: .05, eyebrow: .12, headline: .17, body: .27, rows: .32 };
+  // The world is built under the growing paw — sage field first, then the vet — but nothing
+  // is written until the paw has gone. Reading a headline through a coral paw the size of the
+  // screen is not a transition, it is two pictures at once.
+  const at = { env: 0, art: .05, eyebrow: .62, headline: .7, body: .82, rows: .88 };
 
   // ENTER — sage field, sprigs, the vet and dog, chapter label, headline, copy, services
   revealEnv(stage, stage.scope(".vet-blob"), at.env, { t });

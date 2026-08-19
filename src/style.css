@@ -409,8 +409,10 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .loop-line.is-active { opacity: 1; }
 
 .loop-art { position: absolute; z-index: 6; bottom: 6.5%; left: 35%; width: 30%; height: 46%; }
-.loop-illustration { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: bottom; opacity: 0; transform: translateY(24px) scale(.96); transition: opacity .55s ease, transform .55s cubic-bezier(.22,.72,.2,1); }
-.loop-illustration.is-active { opacity: 1; transform: none; }
+/* The four loop illustrations are crossfaded by the stage code, so they have one owner:
+   GSAP writes their opacity and transform. The CSS transition that used to sit here fought
+   it frame by frame, and the .is-active rule underneath it was already dead weight. */
+.loop-illustration { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: bottom; opacity: 0; }
 .loop-ground { position: absolute; right: -16%; bottom: -1%; left: -16%; aspect-ratio: 3 / 1; pointer-events: none; }
 .loop-ground img { width: 100%; height: 100%; object-fit: contain; transform: translateY(29%); }
 
@@ -464,7 +466,9 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
   50% { transform: scale(1.03); }
 }
 
-.story-scene--vet { min-height: 250svh; margin-top: -100svh; }
+/* Chapter five's entrance waits for the paw portal to clear before it says anything, so the
+   section carries the extra screen that wait costs — otherwise the scene is read and gone. */
+.story-scene--vet { min-height: 310svh; margin-top: -100svh; }
 .vet-blob { position: absolute; z-index: 0; bottom: 8%; left: 1%; width: 54%; height: 72%; pointer-events: none; }
 .vet-blob img { width: 100%; height: 100%; object-fit: contain; }
 /* the two sprigs sit between the field and the vet: one tucked at her back, one behind the
