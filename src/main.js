@@ -107,9 +107,9 @@ let activeLoopStage = -1;
 let routePaws = [];
 let routeLines = [];
 let routeY = [];
-let travelZones = [];
 let activePaw = -2;
 let routeFrame = 0;
+let stageRanges = [];
 let routeGuideVisible = false;
 let sceneMotionBuilt = false;
 let chapterBands = [];
@@ -217,29 +217,47 @@ function resolveChrome() {
   setChromeVisibility(window.scrollY >= chromeBand.start && window.scrollY < chromeBand.end);
 }
 
-// the open page between chapters — travel space and the interlude — is where the trail is
-// allowed to take over the screen
-function buildTravelZones() {
-  travelZones = gsap.utils.toArray(".journey-space, .story-interlude").map((zone) => {
-    const top = zone.getBoundingClientRect().top + window.scrollY;
-    return { top, bottom: top + zone.offsetHeight };
+// Where each chapter's stage holds the screen: from a quarter screen before it sticks to a
+// quarter screen after its section lets it go. Inside that run the chapter owns the view.
+function buildStageRanges() {
+  stageRanges = scenes.map((scene) => {
+    const top = scene.getBoundingClientRect().top + window.scrollY;
+    return { top, bottom: top + scene.offsetHeight };
   });
 }
 
-// Inside a chapter the trail is a whisper (.3); in the space between chapters it becomes the
-// protagonist (1). Scroll-derived and smoothed, so it swells and settles rather than switching.
-function pawPresence() {
-  if (!travelZones.length) return 1;
-  const focus = window.scrollY + window.innerHeight * .5;
-  const ramp = window.innerHeight * .62;
-  let nearest = 0;
-  for (let index = 0; index < travelZones.length; index += 1) {
-    const { top, bottom } = travelZones[index];
-    const gap = focus < top ? top - focus : focus > bottom ? focus - bottom : 0;
-    nearest = Math.max(nearest, 1 - Math.min(1, gap / ramp));
+const clamp01 = (value) => Math.max(0, Math.min(1, value));
+
+// Two questions, and the trail is only shown when both answer yes: is there a print near the
+// middle of the screen, and is the screen free of a chapter. Prints alone are not enough —
+// the walk into the paw portal is laid a few pixels below chapter four's last frame, and
+// chapter tails start while their own stage is still standing. Chapters alone are not enough
+// either — between two of them there are stretches the route never visits. The measure used
+// to be a distance to the nearest travel space, which left a quarter-strength dotted line
+// printed across every illustration and still never reached full strength in the short
+// spaces between chapters.
+function pawPresence(centreY) {
+  if (!routeY.length) return 1;
+  const viewport = window.innerHeight;
+  let gap = Infinity;
+  for (let index = 0; index < routeY.length; index += 1) {
+    gap = Math.min(gap, Math.abs(routeY[index] - centreY));
+    if (routeY[index] > centreY) break;
   }
-  const eased = nearest * nearest * (3 - 2 * nearest);
-  return .25 + eased * .75;
+  const reach = 1 - Math.min(1, Math.max(0, gap - viewport * .2) / (viewport * .4));
+
+  const scroll = window.scrollY;
+  const edge = viewport * .28;
+  let held = 0;
+  for (let index = 0; index < stageRanges.length; index += 1) {
+    const { top, bottom } = stageRanges[index];
+    const arriving = clamp01((scroll - (top - edge)) / edge);
+    const leaving = clamp01((bottom - viewport + edge - scroll) / edge);
+    held = Math.max(held, arriving * leaving);
+  }
+
+  const open = reach * (1 - held);
+  return open * open * (3 - 2 * open);
 }
 
 function resolveChapter() {
@@ -357,14 +375,14 @@ function buildGlobalPawJourney() {
   routeY = placed;
   activePaw = -2;
   buildChapterBands();
-  buildTravelZones();
+  buildStageRanges();
   updatePawJourney();
 }
 
 function updatePawJourney() {
-  journeyLayer.style.setProperty("--paw-presence", pawPresence().toFixed(3));
   const storyTop = storyPage.getBoundingClientRect().top + window.scrollY;
   const focusY = window.scrollY - storyTop + window.innerHeight * .92;
+  journeyLayer.style.setProperty("--paw-presence", pawPresence(focusY - window.innerHeight * .42).toFixed(3));
   let nextActive = -1;
   for (let index = 0; index < routeY.length; index += 1) {
     if (routeY[index] <= focusY) nextActive = index;
@@ -930,8 +948,6 @@ function buildReducedMotion() {
   });
 }
 
-// a long exponential settle: fast off the mark, then a slow glide into rest
-const SCROLL_EASE = (progress) => (progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress));
 // Chapter clicks use a symmetric curve instead. The wheel ease covers half its distance in
 // the first tenth of the time, which reads as a jump followed by a drift — fine when the
 // reader caused the movement, wrong when the page is walking them somewhere and the point
@@ -949,15 +965,17 @@ function setupSmoothScroll() {
   if (prefersReducedMotion) return;
   const modestDevice = (navigator.hardwareConcurrency || 4) < 4;
   // A heavier glide than the browser's own: the page keeps travelling for a moment after
-  // the wheel stops, which is what makes a scroll read as camera movement rather than
-  // paging. Touch is synced to the same curve so phones inherit the same weight.
-  // Two separate levers, and they do different jobs. The multipliers set how far one
-  // gesture travels — under 1 the page moves less per wheel notch, which is the "slower"
-  // half. The lerp sets how long it keeps coasting afterwards, which is the "smoother"
-  // half. Dropping only the lerp would make it float without ever feeling calmer.
+  // the wheel stops, which is what makes a scroll read as camera movement rather than paging.
+  // Two levers, and they do different jobs. The multipliers set how far one gesture travels —
+  // under 1 the page moves less per wheel notch, which is the "slower" half. The lerp sets how
+  // closely the page follows that target, which is the "smoother" half.
   lenis = new Lenis({
-    lerp: 0,
-    duration: 1.45,
+    // One continuous glide rather than a tween restarted per notch. On a duration curve every
+    // wheel event began a new 1.45s ease from wherever the last one had reached, so a burst of
+    // notches — which is how anybody actually scrolls — stacked restart on restart and the
+    // page pulsed. A damped approach folds each notch into the movement already under way, and
+    // it is normalised against frame time, so the weight is the same on any refresh rate.
+    lerp: .078,
     smoothWheel: true,
     // Touch is smoothed everywhere now. A phone that fell back to the browser's own scrolling
     // read the pinned chapters as a series of jumps, because the page arrived at a new
@@ -967,11 +985,10 @@ function setupSmoothScroll() {
     syncTouchLerp: modestDevice ? .12 : .09,
     touchInertiaMultiplier: modestDevice ? 20 : 28,
     // .72 made one notch cover 72px: a reader crossing the whole story spent about 155 of
-    // them. The weight readers feel is the coasting, not the distance per notch, so the
-    // notch grew and the duration and easing below were left alone.
+    // them. The weight readers feel is the coasting, not the distance per notch, so the notch
+    // grew and the smoothing above carries the weight.
     wheelMultiplier: .9,
     touchMultiplier: 1,
-    easing: SCROLL_EASE,
   });
   lenis.on("scroll", () => {
     ScrollTrigger.update();
