@@ -31,6 +31,12 @@
       "skillPath": "skills/gsap-plugins/SKILL.md",
       "computedHash": "50a320904c3053a1a7d01ea95235944814d18c0b5958f17e38046504aa6078a8"
     },
+    "humanizer-zh": {
+      "source": "op7418/humanizer-zh",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "ad6b2b1f1433413c64f6403dc322d950da175a058f494291bd4399e77cb587c7"
+    },
     "improve-animations": {
       "source": "emilkowalski/skills",
       "sourceType": "github",

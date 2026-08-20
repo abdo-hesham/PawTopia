@@ -724,7 +724,10 @@ nav.footer-social a:active { translate: 0; scale: .93; }
 .vet-success { min-height: 350px; text-align: center; place-content: center; justify-items: center; }
 .vet-success:not([hidden]) { display: grid; }
 .vet-success h3 { font-size: 55px; }
-.toast { position: fixed; z-index: 150; bottom: 24px; left: 50%; padding: 11px 20px; visibility: hidden; opacity: 0; transform: translate(-50%,18px); border-radius: 999px; color: var(--cream); background: var(--navy); font-size: 13px; }
+/* One line, always. A pill that wraps to two lines stops reading as a passing note and starts
+   reading as a panel, and the longest product names were enough to break it. It never asks for
+   more width than the screen has, and a name long enough to need more is trimmed instead. */
+.toast { position: fixed; z-index: 150; bottom: 24px; left: 50%; max-width: calc(100vw - 32px); padding: 11px 20px; visibility: hidden; opacity: 0; transform: translate(-50%,18px); border-radius: 999px; color: var(--cream); background: var(--navy); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @media (min-width: 901px) and (max-width: 1100px) {
   .hero-atmosphere--left { left: 40px; }
