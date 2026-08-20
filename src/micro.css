@@ -72,6 +72,10 @@ body .button { transition: translate var(--micro-fast) var(--micro-out), scale v
 .product-add.is-added::after { opacity: 1; }
 .product-add.is-added svg { position: relative; z-index: 1; translate: 0 -2px; }
 
+/* --- the bag: the quantity stepper ---------------------------------------- */
+.cart-qty button { transition: background-color var(--micro-base) ease, color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
+.cart-qty button:not(:disabled):active { scale: .88; }
+
 /* --- shop: pagination ----------------------------------------------------- */
 .page-step { transition: background-color var(--micro-base) ease, border-color var(--micro-base) ease, color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
 .page-step:not(:disabled):active { scale: .92; }

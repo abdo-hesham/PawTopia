@@ -1396,17 +1396,47 @@ function renderCart() {
     const art = product.image
       ? `<span class="cart-item__icon cart-item__icon--photo"><img src="${product.image}" alt="" width="700" height="700" loading="lazy" decoding="async" /></span>`
       : `<span class="cart-item__icon" aria-hidden="true">${product.code}</span>`;
-    return `<article class="cart-item">${art}<div><strong>${product.name}</strong><small>${product.detail} · Qty ${count}</small></div><div><b>${money(product.price * count)}</b><button type="button" data-remove="${key}">Remove</button></div></article>`;
+    // The line carries its own count now. "Remove" used to take one off, which is not what it
+    // says, and there was no way at all to ask for a fourth of something without going back
+    // to the shop and adding it again. The stepper changes the number, Remove takes the line.
+    return `<article class="cart-item">${art}<div><strong>${product.name}</strong><small>${product.detail}</small></div><div class="cart-item__side"><b>${money(product.price * count)}</b><span class="cart-qty" role="group" aria-label="Quantity of ${product.name}"><button type="button" data-qty-step="-1" data-key="${key}" aria-label="One fewer ${product.name}"${count <= 1 ? " disabled" : ""}>−</button><span>${count}</span><button type="button" data-qty-step="1" data-key="${key}" aria-label="One more ${product.name}"${count >= CART_MAX ? " disabled" : ""}>+</button></span><button class="cart-drop" type="button" data-remove="${key}" aria-label="Remove ${product.name} from your bag">Remove</button></div></article>`;
   }).join("");
 
-  cartItems.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => {
-    const key = button.dataset.remove;
-    const next = (cart.get(key) || 1) - 1;
-    if (next) cart.set(key, next);
-    else cart.delete(key);
-    renderCart();
-  }));
+  // the checkout reads the same bag, so a count changed in the drawer over an open checkout
+  // does not leave a summary of what the bag used to hold
+  if (checkoutBuilt) checkoutModule?.renderCheckout();
 }
+
+// no stock behind this shop, so the ceiling is only there to keep a held-down key from
+// running the count into figures nobody means
+const CART_MAX = 99;
+
+function setCartCount(key, next) {
+  const count = Math.max(0, Math.min(CART_MAX, next));
+  if (count) cart.set(key, count);
+  else cart.delete(key);
+  renderCart();
+  return count;
+}
+
+// One listener for a list that is rebuilt on every change. It also puts the focus back on the
+// control that was pressed, because the button the reader is holding is destroyed by the
+// re-render and the focus would otherwise fall to the top of the page mid-decision.
+cartItems.addEventListener("click", (event) => {
+  const step = event.target.closest("[data-qty-step]");
+  if (step) {
+    const key = step.dataset.key;
+    const direction = step.dataset.qtyStep;
+    const count = setCartCount(key, (cart.get(key) || 0) + Number(direction));
+    if (!count) return;
+    const same = cartItems.querySelector(`[data-qty-step="${direction}"][data-key="${CSS.escape(key)}"]`);
+    const fallback = cartItems.querySelector(`[data-key="${CSS.escape(key)}"]:not([disabled])`);
+    (same && !same.disabled ? same : fallback)?.focus();
+    return;
+  }
+  const remove = event.target.closest("[data-remove]");
+  if (remove) setCartCount(remove.dataset.remove, 0);
+});
 
 document.querySelectorAll(".js-add-product").forEach((button) => button.addEventListener("click", () => {
   const key = button.dataset.product;
