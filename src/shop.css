@@ -153,6 +153,13 @@
   .shop-value:nth-child(n+3) { padding-top: clamp(12px, 2svh, 20px); border-top: 1px solid rgba(18,58,86,.12); }
 }
 
+@media (max-width: 720px) {
+  /* On a phone the filter column is a screen of checkboxes standing between the reader and
+     the products. The category cards above the grid and the sort control cover the same
+     ground in a form that fits the screen, so the column stands down here. */
+  .shop-filters { display: none; }
+}
+
 @media (max-width: 560px) {
   .shop-categories { grid-template-columns: minmax(0, 1fr); }
   .product-grid { grid-template-columns: minmax(0, 1fr); }
