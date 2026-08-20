@@ -73,10 +73,6 @@
 .product-badge--new { background: var(--navy); }
 .product-badge--top { background: var(--peach); color: var(--navy); }
 .product-badge--vet { background: var(--coral); }
-.product-save { position: absolute; top: clamp(10px, 1.2vw, 16px); right: clamp(10px, 1.2vw, 16px); z-index: 2; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: none; color: rgba(18,58,86,.35); cursor: pointer; transition: color .3s ease; }
-.product-save svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
-.product-save.is-saved { color: var(--coral); }
-.product-save.is-saved svg { fill: currentColor; }
 /* The picture is letterboxed into the cell rather than sized by one axis. Capping width
    alone let the square photos push their own height past the container and onto the title. */
 /* Flex with max-height, not grid with height:100%. The row here is content-sized, so a
@@ -133,7 +129,6 @@
   .product-card:hover { border-color: rgba(18,58,86,.2); transform: translateY(-3px); box-shadow: 0 18px 40px rgba(18,58,86,.07); }
   .product-card:hover .product-art img { transform: translateY(-4px) scale(1.03); }
   .product-add:hover { border-color: var(--coral); background: var(--coral); color: #fff; }
-  .product-save:hover { color: var(--coral); }
 }
 
 @media (max-width: 1100px) {

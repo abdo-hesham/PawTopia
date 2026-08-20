@@ -135,10 +135,6 @@ function visibleProducts() {
   return list;
 }
 
-// Which hearts are filled has to outlive the grid, because every filter, sort and page
-// re-renders all twelve cards from scratch.
-const saved = new Set();
-
 function categoryLabel(id) {
   return CATEGORIES.find((category) => category.id === id)?.label || id;
 }
@@ -147,11 +143,9 @@ function categoryLabel(id) {
 // text — the stars and the bare "(128)" are a picture of a rating, so the rating is written
 // out for a screen reader beside them and the marks themselves are hidden.
 function cardMarkup(product) {
-  const isSaved = saved.has(product.id);
   const nameId = `product-name-${product.id}`;
   return `<article class="product-card" data-product-card="${product.id}" aria-labelledby="${nameId}">
     ${product.badge ? `<span class="product-badge product-badge--${product.badge.split(" ")[0].toLowerCase()}">${product.badge}</span>` : ""}
-    <button class="product-save${isSaved ? " is-saved" : ""}" type="button" data-save="${product.id}" aria-pressed="${isSaved}" aria-label="${isSaved ? "Remove" : "Add"} ${product.name} ${isSaved ? "from" : "to"} your wishlist"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.1 4.9 13a4.5 4.5 0 0 1 6.4-6.4l.7.7.7-.7A4.5 4.5 0 1 1 19.1 13Z" /></svg></button>
     <span class="product-art"><img src="${photo(product.photo)}" alt="${product.name} — ${product.detail}" width="700" height="700" loading="lazy" decoding="async" /></span>
     <h3 id="${nameId}"><button class="product-open" type="button" data-open="${product.id}">${product.name}</button></h3>
     <p class="product-blurb">${product.blurb}</p>
@@ -507,18 +501,6 @@ export function buildShop({ onAdd } = {}) {
     if (add) {
       onAddToCart(add.dataset.add);
       confirmAdd(add);
-      return;
-    }
-    const save = event.target.closest(".product-save");
-    if (save) {
-      const id = save.dataset.save;
-      const now = !saved.has(id);
-      if (now) saved.add(id); else saved.delete(id);
-      const name = CATALOGUE.find((product) => product.id === id)?.name || "this product";
-      save.classList.toggle("is-saved", now);
-      save.setAttribute("aria-pressed", String(now));
-      save.setAttribute("aria-label", `${now ? "Remove" : "Add"} ${name} ${now ? "from" : "to"} your wishlist`);
-      gsap.fromTo(save, { scale: .8 }, { scale: 1, duration: .38, ease: EASE.art });
       return;
     }
     // anywhere else on the card opens the product

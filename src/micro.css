@@ -63,8 +63,6 @@ body .button { transition: translate var(--micro-fast) var(--micro-out), scale v
 
 /* --- shop: product cards -------------------------------------------------- */
 .product-card { transition: border-color var(--micro-settle) ease, translate var(--micro-settle) var(--micro-out), box-shadow var(--micro-settle) ease; }
-.product-save { transition: color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
-.product-save:active { scale: .86; }
 .product-add { position: relative; overflow: hidden; transition: background-color var(--micro-base) ease, color var(--micro-base) ease, border-color var(--micro-base) ease, scale var(--micro-fast) var(--micro-out); }
 .product-add:active { scale: .9; }
 .product-add svg { transition: translate var(--micro-base) var(--micro-out), opacity var(--micro-fast) ease; }
@@ -108,7 +106,6 @@ body .button { transition: translate var(--micro-fast) var(--micro-out), scale v
 
   .shop-category:hover .shop-category__art { scale: 1.08; }
   .filter-group label:hover .filter-tick { border-color: var(--coral); }
-  .product-save:hover { scale: 1.12; }
   .page-number:hover { color: var(--navy); }
 
   .service-list button:hover { translate: 4px 0; }
@@ -125,7 +122,7 @@ body .button { transition: translate var(--micro-fast) var(--micro-out), scale v
 @media (prefers-reduced-motion: reduce) {
   /* the movement goes, the colour and the tick stay: they carry the meaning */
   .button, .button span, .text-cta span, .shop-category, .shop-category__art, .product-card,
-  .product-save, .product-add, .page-step, .choice-cards span, .service-list button,
+  .product-add, .page-step, .choice-cards span, .service-list button,
   .product-note, .cart-count, .is-magnetic, .scene-progress span, .menu-button i,
   nav.footer-social a {
     transition-property: opacity, color, background-color, border-color !important;
