@@ -158,6 +158,10 @@
   .product-grid { grid-template-columns: minmax(0, 1fr); }
   .shop-values { grid-template-columns: minmax(0, 1fr); }
   .shop-toolbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+  /* Stacked, the control sits at the left edge, and a menu hung from its right corner opened
+     off the side of the screen — half the sort options were outside the page. It hangs from
+     the left corner here, and it never asks for more width than the screen has. */
+  .sort-menu { right: auto; left: 0; min-width: min(190px, calc(100vw - 40px)); max-width: calc(100vw - 40px); }
 }
 
 /* the cream wipe the router sweeps between the story and the shop */

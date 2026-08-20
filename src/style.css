@@ -429,11 +429,15 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
    arrives at 1, the stages already walked stay readable at .5. Row offset uses translate and
    the fade sits on the row's contents, so the scene's own entrance keeps owning transform
    and opacity on the <li> itself. */
-.loop-steps li { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 0 clamp(10px, 1.1vw, 20px); padding: var(--loop-row-pad) 0; border-top: 1px solid var(--line); }
-.loop-steps li > b, .loop-steps li > .loop-step-copy { opacity: .28; transform: translateX(10px); transition: opacity .55s ease, transform .6s cubic-bezier(.22,.72,.2,1); }
+.loop-steps li { padding: var(--loop-row-pad) 0; border-top: 1px solid var(--line); }
+/* Each stage is a control: the row the reader is reading can be asked for directly rather
+   than scrolled to. The grid sits on the button so the whole row is the target. */
+.loop-step { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 0 clamp(10px, 1.1vw, 20px); width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.loop-step:focus-visible { outline: 2px solid var(--coral); outline-offset: 6px; border-radius: 4px; }
+.loop-steps b, .loop-steps .loop-step-copy { opacity: .28; transform: translateX(10px); transition: opacity .55s ease, transform .6s cubic-bezier(.22,.72,.2,1); }
 .loop-steps .loop-step-copy { display: block; }
-.loop-steps li.is-done > b, .loop-steps li.is-done > .loop-step-copy { opacity: .5; transform: none; }
-.loop-steps li.is-active > b, .loop-steps li.is-active > .loop-step-copy { opacity: 1; transform: none; }
+.loop-steps li.is-done b, .loop-steps li.is-done .loop-step-copy { opacity: .5; transform: none; }
+.loop-steps li.is-active b, .loop-steps li.is-active .loop-step-copy { opacity: 1; transform: none; }
 .loop-steps li:first-child { border-top: 0; padding-top: 0; }
 .loop-steps b { display: inline-block; padding-top: .35em; color: rgba(18,58,86,.34); font-size: clamp(10px, .8vw, 12px); font-weight: 500; letter-spacing: .1em; transform-origin: left center; scale: .95; transition: color .4s ease, opacity .55s ease, transform .6s cubic-bezier(.22,.72,.2,1), scale .5s cubic-bezier(.22,.72,.2,1); }
 .loop-steps li.is-active b { color: var(--coral); scale: 1; }
@@ -445,6 +449,11 @@ body.is-navigating .loop-illustration, body.is-navigating .loop-headline, body.i
 .loop-steps li.is-done b { color: rgba(18,58,86,.36); }
 .loop-steps li.is-done strong { color: rgba(18,58,86,.52); }
 .loop-steps li.is-done small { color: rgba(18,58,86,.4); }
+@media (hover: hover) and (pointer: fine) {
+  /* a stage that is not the live one answers the pointer, so the row reads as askable */
+  .loop-steps li:not(.is-active) .loop-step:hover b, .loop-steps li:not(.is-active) .loop-step:hover .loop-step-copy { opacity: .78; transform: none; }
+  .loop-steps li:not(.is-active) .loop-step:hover strong { color: rgba(18,58,86,.72); }
+}
 
 /* the paw walks this rail from SHOP to RETURN so loop progress is always readable */
 .loop-rail { position: absolute; z-index: 19; top: 44%; right: calc(clamp(16px, 3.2vw, 58px) + min(380px, 24%) + clamp(16px, 1.6vw, 30px)); width: 2px; height: 42%; background: rgba(18,58,86,.13); }
@@ -736,7 +745,12 @@ nav.footer-social a:active { translate: 0; scale: .93; }
     --type-small: 13px;
   }
   body { font-size: 16px; }
-  .site-header { grid-template-columns: 1fr auto; padding-inline: 19px; }
+  /* On a phone the bar sits on the artwork rather than beside it — a chapter's headline runs
+     the full width and passed straight under the logo and the bag. It carries the page's own
+     cream so the controls always have ground under them, and the scene dissolves into it
+     across a short fade rather than being cut by a hard edge. */
+  .site-header { grid-template-columns: 1fr auto; padding-inline: 19px; background: var(--cream); }
+  .site-header::after { content: ""; position: absolute; top: 100%; right: 0; left: 0; height: 16px; background: linear-gradient(var(--cream), rgba(251, 246, 236, 0)); pointer-events: none; }
   .brand strong { font-size: 23px; }
   .brand small { display: none; }
   .brand .paw-mark { transform: scale(.82); transform-origin: left center; margin-right: -5px; }
@@ -864,7 +878,11 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   .final-pet { bottom: 0%; width: 40%; height: 25%; }
   .final-pet--dog { left: 3%; }
   .final-pet--cat { right: 3%; }
-  .scene-progress { top: auto; bottom: 16px; left: 18px; flex-direction: row; transform: translateY(12px); }
+  /* The rail keeps its shape on a phone: a column down the left edge, the way it reads on a
+     desktop. Along the bottom it was crossing whatever the chapter had standing there. Its
+     own height is offset from the middle of the screen rather than by a transform, because
+     the slide-in writes the transform. */
+  .scene-progress { top: calc(50% - 55px); bottom: auto; left: 10px; flex-direction: column; gap: 9px; }
   .scene-progress span { display: none; }
   .footer-farewell { min-height: clamp(330px, 46svh, 420px); }
   /* the footer is a full screen here too, so the ground oversizes past the viewport
@@ -951,9 +969,9 @@ nav.footer-social a:active { translate: 0; scale: .93; }
   /* movement goes; fades and colour stay, because a state that teleports is harder to
      follow, not easier */
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
-  .journey-paw, .loop-illustration, .loop-steps li > b, .loop-steps li > .loop-step-copy, .destination img, .service-list i, .footer-arrival, .scene-progress i { transition-property: opacity, color, background-color, border-color !important; transition-duration: .2s !important; }
+  .journey-paw, .loop-illustration, .loop-steps b, .loop-steps .loop-step-copy, .destination img, .service-list i, .footer-arrival, .scene-progress i { transition-property: opacity, color, background-color, border-color !important; transition-duration: .2s !important; }
   .journey-paw.is-past, .journey-paw.is-current { transform: translate(-50%, -50%) rotate(var(--paw-rotate)) scale(1) !important; }
-  .loop-illustration, .loop-steps li > b, .loop-steps li > .loop-step-copy { transform: none !important; }
+  .loop-illustration, .loop-steps b, .loop-steps .loop-step-copy { transform: none !important; }
   .site-header, .scene-progress { opacity: 1 !important; transform: none !important; }
   .scene-frame, .scene-frame--sticky, .loop-frame, .interlude-frame { position: relative; height: auto; }
   .story-scene--hero, .story-scene--loop, .story-scene, .story-scene--family, .story-scene--choice, .story-scene--discovery, .story-scene--vet, .story-scene--final { min-height: 100svh; }

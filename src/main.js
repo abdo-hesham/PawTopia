@@ -510,6 +510,11 @@ function setLoopStage(index) {
   document.querySelectorAll("[data-loop-step]").forEach((step, stepIndex) => {
     step.classList.toggle("is-active", stepIndex === next);
     step.classList.toggle("is-done", stepIndex < next);
+    // the row is a control, so which stage it is asking for is stated rather than only drawn
+    const control = step.querySelector(".loop-step");
+    if (!control) return;
+    if (stepIndex === next) control.setAttribute("aria-current", "step");
+    else control.removeAttribute("aria-current");
   });
   // the outgoing illustration leaves before the incoming one arrives, for the same reason
   // the headlines do: two of them at half opacity is not a crossfade, it is a double exposure
@@ -527,6 +532,27 @@ function setLoopStage(index) {
     });
   });
 }
+
+// A stage can be asked for by name. The four stages are stops along chapter four's pinned
+// run, so the page travels to the middle of the one that was asked for and the scene's own
+// scroll-driven crossfade brings its headline, its line and its illustration in — the walk on
+// the rail, the row states and the scroll position all stay one thing.
+function scrollToLoopStage(index) {
+  const section = document.querySelector("#scene-loop");
+  if (!section) return;
+  const stage = Math.max(0, Math.min(3, index));
+  // reduced motion has no pinned run to travel: the stage is simply shown
+  if (prefersReducedMotion || !lenis) { setLoopStage(stage); return; }
+  const run = Math.max(1, section.offsetHeight - window.innerHeight);
+  const target = section.offsetTop + run * ((stage + .5) / 4) * LOOP_STAGES_END;
+  lenis.scrollTo(target, { duration: .95, easing: TRAVEL_EASE });
+}
+
+document.addEventListener("click", (event) => {
+  const control = event.target.closest?.("[data-loop-jump]");
+  if (!control) return;
+  scrollToLoopStage(Number(control.dataset.loopJump));
+});
 
 function setLoopWalk(frame, walk) {
   if (!frame) return;
